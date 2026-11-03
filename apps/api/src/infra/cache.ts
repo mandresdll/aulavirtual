@@ -14,6 +14,8 @@ export interface Cache {
     load: (missing: readonly string[]) => Promise<Map<string, T>>,
   ): Promise<Map<string, T>>;
   delete(keys: readonly string[]): Promise<void>;
+  /** Borra todas las claves que empiezan con `prefix` (p. ej. páginas del listado). */
+  deleteByPrefix(prefix: string): Promise<void>;
 }
 
 export interface CacheErrorReporter {
@@ -78,6 +80,26 @@ export class RedisCache implements Cache {
       this.onError(error, 'del');
     }
   }
+
+  async deleteByPrefix(prefix: string): Promise<void> {
+    try {
+      let cursor = '0';
+      do {
+        const [next, keys] = await this.redis.scan(
+          cursor,
+          'MATCH',
+          // Los comodines de MATCH se escapan: el prefijo se trata como texto literal.
+          `${this.prefix}${prefix.replace(/[*?[\]\\]/g, '\\$&')}*`,
+          'COUNT',
+          500,
+        );
+        if (keys.length > 0) await this.redis.unlink(...keys);
+        cursor = next;
+      } while (cursor !== '0');
+    } catch (error) {
+      this.onError(error, 'del');
+    }
+  }
 }
 
 /** Sin caché: siempre lee de la fuente (pruebas unitarias y entornos sin Redis). */
@@ -95,4 +117,6 @@ export class NoCache implements Cache {
   }
 
   async delete(): Promise<void> {}
+
+  async deleteByPrefix(): Promise<void> {}
 }

@@ -22,6 +22,7 @@ export const seoRoutes: FastifyPluginAsyncZod<SeoRoutesOptions> = async (app, op
   app.get(
     '/seo/head',
     {
+      config: { access: 'public' },
       schema: {
         tags: ['seo'],
         summary: 'Etiquetas <head> (title, Open Graph, Twitter Card, JSON-LD) de una página',
@@ -44,6 +45,7 @@ export const seoRoutes: FastifyPluginAsyncZod<SeoRoutesOptions> = async (app, op
   app.get(
     '/seo/sitemap.xml',
     {
+      config: { access: 'public' },
       schema: {
         tags: ['seo'],
         summary: 'Mapa del sitio con las páginas públicas y los cursos publicados',
@@ -62,6 +64,7 @@ export const seoRoutes: FastifyPluginAsyncZod<SeoRoutesOptions> = async (app, op
   app.get(
     '/seo/robots.txt',
     {
+      config: { access: 'public' },
       schema: {
         tags: ['seo'],
         summary: 'robots.txt (bloquea todo si SEO_ALLOW_INDEXING=false)',

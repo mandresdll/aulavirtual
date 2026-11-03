@@ -1,5 +1,8 @@
 import type { PrismaClient } from '@prisma/client';
+import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import type { Cache } from './infra/cache.js';
+import type { IdentityUserInput, UserRepository } from './modules/auth/users.js';
+import type { AuditEntry, AuditRecorder } from './plugins/audit.js';
 import type {
   AreaRecord,
   CatalogRepository,
@@ -156,4 +159,69 @@ export class MemoryCache implements Cache {
   async delete(keys: readonly string[]): Promise<void> {
     for (const key of keys) this.store.delete(key);
   }
+
+  async deleteByPrefix(prefix: string): Promise<void> {
+    for (const key of [...this.store.keys()]) if (key.startsWith(prefix)) this.store.delete(key);
+  }
+}
+
+/** Auditoría en memoria para pruebas unitarias. */
+export class MemoryAuditRecorder implements AuditRecorder {
+  readonly entries: AuditEntry[] = [];
+
+  async record(entry: AuditEntry): Promise<void> {
+    this.entries.push(entry);
+  }
+}
+
+/** Usuarios en memoria para pruebas unitarias del inicio de sesión. */
+export class MemoryUserRepository implements UserRepository {
+  readonly users = new Map<string, IdentityUserInput & { id: string }>();
+
+  async upsertFromIdentity(input: IdentityUserInput) {
+    const existing = this.users.get(input.subject);
+    const id = existing?.id ?? `user-${this.users.size + 1}`;
+    this.users.set(input.subject, { ...input, id });
+    return { id, created: !existing };
+  }
+}
+
+export interface TestSession {
+  /** Cabecera `cookie` lista para `inject`. */
+  cookie: string;
+  csrfToken: string;
+}
+
+function cookieHeader(response: LightMyRequestResponse, name: string): string {
+  const cookie = response.cookies.find((item) => item.name === name);
+  if (!cookie) throw new Error(`Missing cookie ${name}`);
+  return `${cookie.name}=${cookie.value}`;
+}
+
+/**
+ * Inicia sesión con el IdP simulado como `subject` (ver `MOCK_IDENTITIES`) recorriendo el flujo
+ * real: login → página del IdP → callback → sesión.
+ */
+export async function loginAs(app: FastifyInstance, subject: string): Promise<TestSession> {
+  const login = await app.inject({ method: 'GET', url: '/api/auth/login?returnTo=/admin' });
+  const state = new URL(String(login.headers.location)).searchParams.get('state') ?? '';
+  const loginCookie = login.cookies.find((item) => item.name.endsWith('login'));
+  if (!loginCookie) throw new Error('Missing login cookie');
+
+  const callback = await app.inject({
+    method: 'GET',
+    url: `/api/auth/callback?${new URLSearchParams({ code: subject, state }).toString()}`,
+    headers: { cookie: `${loginCookie.name}=${loginCookie.value}` },
+  });
+  const sessionCookieName = callback.cookies.find((item) => item.name.endsWith('sid'))?.name;
+  if (!sessionCookieName) throw new Error(`Login failed: ${String(callback.headers.location)}`);
+  const cookie = cookieHeader(callback, sessionCookieName);
+
+  const session = await app.inject({
+    method: 'GET',
+    url: '/api/auth/session',
+    headers: { cookie },
+  });
+  const body = session.json() as { csrfToken?: string };
+  return { cookie, csrfToken: body.csrfToken ?? '' };
 }

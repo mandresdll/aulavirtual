@@ -38,7 +38,7 @@ export const healthRoutes: FastifyPluginAsyncZod<HealthRoutesOptions> = async (a
   app.get(
     '/health',
     {
-      config: { rateLimit: false },
+      config: { access: 'public', rateLimit: false },
       schema: {
         tags: ['sistema'],
         summary: 'Liveness: el proceso responde',
@@ -55,7 +55,7 @@ export const healthRoutes: FastifyPluginAsyncZod<HealthRoutesOptions> = async (a
   app.get(
     '/ready',
     {
-      config: { rateLimit: false },
+      config: { access: 'public', rateLimit: false },
       schema: {
         tags: ['sistema'],
         summary: 'Readiness: dependencias (PostgreSQL, Redis) disponibles',

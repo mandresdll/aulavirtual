@@ -38,6 +38,11 @@ export const EnvSchema = z
 
     RATE_LIMIT_MAX: positiveInt.default(100),
     RATE_LIMIT_WINDOW_MS: positiveInt.default(60_000),
+    AUTH_RATE_LIMIT_MAX: positiveInt.default(10),
+
+    SESSION_IDLE_TIMEOUT_SECONDS: positiveInt.default(1_800),
+    SESSION_ABSOLUTE_TIMEOUT_SECONDS: positiveInt.default(28_800),
+    SESSION_COOKIE_SECURE: flag.default(true),
 
     CATALOG_CACHE_TTL_SECONDS: positiveInt.default(60),
     SEATS_CACHE_TTL_SECONDS: positiveInt.default(15),
@@ -120,6 +125,14 @@ export const EnvSchema = z
     }
     if (env.INVOICING_DRIVER === 'http') {
       requireVars('INVOICING_DRIVER=http', ['INVOICING_API_URL', 'INVOICING_API_TOKEN']);
+    }
+
+    if (env.APP_ENV === 'production' && !env.SESSION_COOKIE_SECURE) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['SESSION_COOKIE_SECURE'],
+        message: 'La cookie de sesión debe ser Secure en producción',
+      });
     }
 
     // En producción, los adaptadores simulados solo se permiten de forma explícita.
