@@ -79,3 +79,31 @@ export function nextIsoDate(isoDate: string): string {
   date.setUTCDate(date.getUTCDate() + 1);
   return date.toISOString().slice(0, 10);
 }
+
+const localInputFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: DISPLAY_TIME_ZONE,
+  hourCycle: 'h23',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+/** Valor para un `<input type="datetime-local">` (YYYY-MM-DDTHH:mm) en hora de Punta Arenas. */
+export function toLocalDateTimeInput(date: Date): string {
+  const parts = Object.fromEntries(
+    localInputFormatter.formatToParts(date).map((part) => [part.type, part.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+}
+
+/** Instante UTC de una fecha y hora local de Punta Arenas (YYYY-MM-DDTHH:mm). */
+export function fromLocalDateTimeInput(value: string): Date {
+  const match = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})$/.exec(value);
+  if (!match) throw new RangeError(`Invalid local date-time: ${value}`);
+  const naiveUtc = Date.parse(`${match[1]}T${match[2]}:${match[3]}:00Z`);
+  let instant = naiveUtc - displayZoneOffsetMs(new Date(naiveUtc));
+  instant = naiveUtc - displayZoneOffsetMs(new Date(instant));
+  return new Date(instant);
+}

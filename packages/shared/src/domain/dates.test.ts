@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { formatDateTime, nextIsoDate, startOfLocalDay, toLocalIsoDate } from './dates.js';
+import {
+  formatDateTime,
+  fromLocalDateTimeInput,
+  nextIsoDate,
+  startOfLocalDay,
+  toLocalDateTimeInput,
+  toLocalIsoDate,
+} from './dates.js';
 
 describe('dates in America/Punta_Arenas (UTC-3 all year)', () => {
   it('converts a UTC instant to the local calendar date', () => {
@@ -33,5 +40,26 @@ describe('local day boundaries', () => {
   it('computes the next calendar day across month and year ends', () => {
     expect(nextIsoDate('2026-02-28')).toBe('2026-03-01');
     expect(nextIsoDate('2026-12-31')).toBe('2027-01-01');
+  });
+});
+
+describe('datetime-local inputs in Punta Arenas time', () => {
+  it('formats a UTC instant as a local input value', () => {
+    expect(toLocalDateTimeInput(new Date('2026-03-01T02:30:00Z'))).toBe('2026-02-28T23:30');
+  });
+
+  it('parses a local input value back to UTC', () => {
+    expect(fromLocalDateTimeInput('2026-02-28T23:30').toISOString()).toBe(
+      '2026-03-01T02:30:00.000Z',
+    );
+  });
+
+  it('round-trips', () => {
+    const instant = new Date('2026-09-10T18:45:00Z');
+    expect(fromLocalDateTimeInput(toLocalDateTimeInput(instant))).toEqual(instant);
+  });
+
+  it('rejects malformed values', () => {
+    expect(() => fromLocalDateTimeInput('2026-02-28 23:30')).toThrow(RangeError);
   });
 });
