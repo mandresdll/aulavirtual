@@ -13,6 +13,7 @@ const PUBLIC_PAGES = [
   { name: 'ficha de curso sin cupos', path: '/cursos/ciberseguridad-para-el-trabajo' },
   { name: 'curso inexistente', path: '/cursos/no-existe' },
   { name: 'página no encontrada', path: '/no-existe' },
+  { name: 'ingreso', path: '/ingresar?error=cancelado' },
 ];
 
 for (const page of PUBLIC_PAGES) {
