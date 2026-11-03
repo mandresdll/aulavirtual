@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 /**
@@ -16,10 +16,9 @@ export default function setup() {
   }
 
   const apiDir = fileURLToPath(new URL('../..', import.meta.url));
-  execFileSync('pnpm', ['exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed'], {
+  execSync('pnpm exec prisma migrate reset --force --skip-seed', {
     cwd: apiDir,
     env: { ...process.env, DATABASE_URL: databaseUrl },
     stdio: 'inherit',
-    shell: process.platform === 'win32',
   });
 }

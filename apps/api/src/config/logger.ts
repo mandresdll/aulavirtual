@@ -41,7 +41,8 @@ export function buildLoggerOptions(env: Pick<Env, 'LOG_LEVEL' | 'APP_ENV'>): Log
         return { id: request.id, method: request.method, url: stripQuery(request.url) };
       },
     },
-    ...(env.APP_ENV === 'development'
+    // pino-pretty es dependencia de desarrollo: no existe en la imagen de producción.
+    ...(env.APP_ENV === 'development' && process.env.NODE_ENV !== 'production'
       ? { transport: { target: 'pino-pretty', options: { translateTime: 'SYS:standard' } } }
       : {}),
   };

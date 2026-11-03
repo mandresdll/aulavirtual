@@ -3,14 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "files": [
+    "dist",
+    "prisma"
+  ],
   "scripts": {
     "dev": "tsx watch --clear-screen=false src/server.ts",
     "worker": "tsx src/worker.ts",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "prisma generate --no-hints && tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "prisma generate --no-hints && tsc --noEmit",
     "test": "vitest run --project unit",
-    "test:integration": "vitest run --project integration --no-file-parallelism",
+    "test:integration": "prisma generate --no-hints && vitest run --project integration --no-file-parallelism",
     "db:generate": "prisma generate",
     "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
     "db:deploy": "dotenv -e ../../.env -- prisma migrate deploy"

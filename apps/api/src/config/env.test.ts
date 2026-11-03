@@ -1,5 +1,6 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { ConfigError, parseEnv } from './env.js';
+import { ConfigError, EnvSchema, parseEnv } from './env.js';
 
 const base = {
   DATABASE_URL: 'postgresql://user:secret-password@localhost:5432/app',
@@ -68,6 +69,20 @@ describe('parseEnv', () => {
     expect(parseEnv({ ...base, APP_ENV: 'production', ALLOW_MOCK_ADAPTERS: 'true' }).APP_ENV).toBe(
       'production',
     );
+  });
+
+  it('documents every variable in .env.example and the example is valid', () => {
+    const example = readFileSync(new URL('../../../../.env.example', import.meta.url), 'utf8');
+    const documented = new Map(
+      example
+        .split(/\r?\n/)
+        .map((line) => /^([A-Z0-9_]+)=(.*)$/.exec(line))
+        .filter((match): match is RegExpExecArray => match !== null)
+        .map((match) => [match[1] as string, match[2] as string]),
+    );
+    const missing = Object.keys(EnvSchema.shape).filter((name) => !documented.has(name));
+    expect(missing).toEqual([]);
+    expect(() => parseEnv(Object.fromEntries(documented))).not.toThrow();
   });
 
   it('never includes variable values in the error message', () => {
