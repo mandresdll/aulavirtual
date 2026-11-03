@@ -202,9 +202,9 @@ function AuditRow({
             type="button"
             className="text-left text-brand-700 underline"
             onClick={() => onFilter('actorId', entry.actorId ?? '')}
-            aria-label={`Ver acciones de ${entry.actorName ?? 'este usuario'}`}
           >
             {entry.actorName ?? entry.actorId}
+            <span className="sr-only"> (ver sus acciones)</span>
           </button>
         ) : (
           'Sistema'

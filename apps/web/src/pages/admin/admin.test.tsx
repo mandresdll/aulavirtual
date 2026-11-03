@@ -264,7 +264,7 @@ describe('audit page', () => {
     expect(await screen.findByRole('cell', { name: 'Edición modificada' })).toBeInTheDocument();
     expect(screen.getByText(/99000/)).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Ver acciones de Editora UTA' }));
+    await userEvent.click(screen.getByRole('button', { name: /Editora UTA.*ver sus acciones/ }));
     await vi.waitFor(() =>
       expect(calls.some((call) => call.path === '/api/admin/audit' && call.method === 'GET')).toBe(
         true,

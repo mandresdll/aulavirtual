@@ -77,7 +77,7 @@ test('an editor manages a course from creation to the public catalog', async ({ 
   // Área y docente.
   await page.getByRole('button', { name: 'Nueva área' }).click();
   const areaForm = page.getByRole('form', { name: 'Nueva área' });
-  await areaForm.getByLabel('Nombre').fill(`Área ${suffix}`);
+  await areaForm.getByLabel('Nombre', { exact: true }).fill(`Área ${suffix}`);
   await areaForm.getByLabel(/slug/).fill(`area-${suffix}`);
   await areaForm.getByRole('button', { name: 'Guardar área' }).click();
   await expectStatus(page, 'Se guardó el área');
@@ -89,7 +89,7 @@ test('an editor manages a course from creation to the public catalog', async ({ 
     .click();
   await page.getByRole('button', { name: 'Nuevo docente' }).click();
   const instructorForm = page.getByRole('form', { name: 'Nuevo docente' });
-  await instructorForm.getByLabel('Nombre').fill(`Docente ${suffix}`);
+  await instructorForm.getByLabel('Nombre', { exact: true }).fill(`Docente ${suffix}`);
   await instructorForm.getByRole('button', { name: 'Guardar docente' }).click();
   await expectStatus(page, 'Se guardó');
 
@@ -100,13 +100,17 @@ test('an editor manages a course from creation to the public catalog', async ({ 
     .click();
   await page.getByRole('link', { name: 'Nuevo curso' }).click();
   const courseForm = page.getByRole('form', { name: 'Datos del curso' });
-  await courseForm.getByLabel('Título').fill(title);
+  await courseForm.getByLabel('Título', { exact: true }).fill(title);
   await courseForm.getByLabel(/slug/).fill(slug);
-  await courseForm.getByLabel('Área').selectOption({ label: `Área ${suffix}` });
+  await courseForm.getByLabel('Área', { exact: true }).selectOption({ label: `Área ${suffix}` });
   await courseForm.getByLabel('Duración (horas)').fill('16');
-  await courseForm.getByLabel('Resumen').fill('Curso creado por la prueba E2E.');
-  await courseForm.getByLabel('Descripción').fill('Descripción del curso de prueba.');
-  await courseForm.getByLabel('Objetivos').fill('Primer objetivo\nSegundo objetivo');
+  await courseForm.getByLabel('Resumen', { exact: true }).fill('Curso creado por la prueba E2E.');
+  await courseForm
+    .getByLabel('Descripción', { exact: true })
+    .fill('Descripción del curso de prueba.');
+  await courseForm
+    .getByLabel('Objetivos', { exact: true })
+    .fill('Primer objetivo\nSegundo objetivo');
   await courseForm.getByLabel(`Docente ${suffix}`).check();
   await courseForm.getByRole('button', { name: 'Crear curso' }).click();
   await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
@@ -120,12 +124,12 @@ test('an editor manages a course from creation to the public catalog', async ({ 
   };
   await page.getByRole('button', { name: 'Nueva edición' }).click();
   const editionForm = page.getByRole('form', { name: 'Nueva edición' });
-  await editionForm.getByLabel('Código').fill(code);
-  await editionForm.getByLabel('Cupos').fill('15');
+  await editionForm.getByLabel('Código', { exact: true }).fill(code);
+  await editionForm.getByLabel('Cupos', { exact: true }).fill('15');
   await editionForm.getByLabel('Precio (CLP)').fill('45000');
-  await editionForm.getByLabel('Inicio').fill(local(30));
-  await editionForm.getByLabel('Término').fill(local(60));
-  await editionForm.getByLabel('Cierre de inscripciones').fill(local(20));
+  await editionForm.getByLabel('Inicio', { exact: true }).fill(local(30));
+  await editionForm.getByLabel('Término', { exact: true }).fill(local(60));
+  await editionForm.getByLabel('Cierre de inscripciones', { exact: true }).fill(local(20));
   await editionForm.getByRole('button', { name: 'Guardar edición' }).click();
   await expectStatus(page, `Se guardó la edición ${code}`);
 
@@ -147,13 +151,13 @@ test('an editor manages a course from creation to the public catalog', async ({ 
   await page.getByLabel(`Código de la copia de ${code}`).fill(`${code}-2`);
   await page.getByRole('button', { name: 'Duplicar', exact: true }).click();
   await expectStatus(page, 'Se creó la copia como borrador');
-  await expect(page.getByRole('cell', { name: `${code}-2` })).toBeVisible();
+  await expect(page.getByRole('cell', { name: `${code}-2`, exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: 'Archivar' }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Archivar curso' }).click();
   await expectStatus(page, 'archivado');
-  await page.goto(`/cursos/${slug}`);
-  await expect(page.getByRole('heading', { level: 1 })).not.toHaveText(title);
+  // La API deja de entregarlo (el navegador puede conservar la ficha hasta 15 s: max-age).
+  expect((await page.request.get(`/api/catalog/courses/${slug}`)).status()).toBe(404);
 });
 
 test('the administrator reviews the read-only audit log', async ({ page }) => {
