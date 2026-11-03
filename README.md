@@ -34,6 +34,10 @@ docker compose up --build
 | API directa             | http://localhost:3000          |
 | Correos de prueba       | http://localhost:8025          |
 
+`docker compose up` aplica las migraciones y carga los **datos de demostración** (2 áreas,
+4 cursos, ediciones con y sin cupos, el cupón `BIENVENIDA10` y usuarios de prueba por rol).
+La carga es idempotente y nunca se ejecuta con `APP_ENV=production`.
+
 Todas las integraciones externas usan **adaptadores simulados** por defecto (`*_DRIVER=mock`):
 no se necesita pasarela, Moodle ni SGA para desarrollar. Ver
 [docs/integraciones.md](docs/integraciones.md).
@@ -45,6 +49,7 @@ Levanta solo la infraestructura en Docker y corre API, worker y web en tu máqui
 ```bash
 docker compose up -d postgres redis mailpit
 pnpm --filter @plataforma/api db:deploy
+pnpm --filter @plataforma/api db:seed   # datos de demostración (opcional)
 pnpm dev
 ```
 
