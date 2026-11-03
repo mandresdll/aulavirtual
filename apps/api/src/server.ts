@@ -25,6 +25,7 @@ async function main() {
       database: databaseReadinessCheck(prisma),
       redis: redisReadinessCheck(redis),
     },
+    prisma,
     redis,
     logger: buildLoggerOptions(env),
   });

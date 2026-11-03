@@ -18,6 +18,10 @@ services:
       MP_SMTP_AUTH_ACCEPT_ANY: 'true'
       MP_SMTP_AUTH_ALLOW_INSECURE: 'true'
 
+  # En desarrollo (y en el E2E de CI) se cargan además los datos de demostración.
+  migrate:
+    command: ['sh', '-c', 'node_modules/.bin/prisma migrate deploy && node dist/seed.js']
+
   api:
     environment:
       SMTP_HOST: mailpit

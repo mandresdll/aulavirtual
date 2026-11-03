@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { buildApp } from './app.js';
 import { createIntegrations } from './integrations/index.js';
 import { AppError } from './lib/errors.js';
-import { testEnv } from './test-support.js';
+import { testEnv, unusedPrismaClient } from './test-support.js';
 
 let app: FastifyInstance | undefined;
 
@@ -21,6 +21,7 @@ async function createApp(
     env,
     integrations: createIntegrations(env),
     readinessChecks: options.readinessChecks ?? { database: async () => {} },
+    prisma: unusedPrismaClient(),
   });
   return app;
 }

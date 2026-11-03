@@ -39,6 +39,10 @@ export const EnvSchema = z
     RATE_LIMIT_MAX: positiveInt.default(100),
     RATE_LIMIT_WINDOW_MS: positiveInt.default(60_000),
 
+    CATALOG_CACHE_TTL_SECONDS: positiveInt.default(60),
+    SEATS_CACHE_TTL_SECONDS: positiveInt.default(15),
+    SEO_ALLOW_INDEXING: flag.default(false),
+
     MAILER_DRIVER: z.enum(['smtp', 'memory']).default('smtp'),
     SMTP_HOST: z.string().default('localhost'),
     SMTP_PORT: port.default(1025),
