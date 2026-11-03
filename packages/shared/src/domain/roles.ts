@@ -26,6 +26,10 @@ export type CommunityProfile = z.infer<typeof CommunityProfileSchema>;
 export const PERMISSIONS = {
   /** Panel de administración: cursos, ediciones, áreas y docentes (RF-07). */
   'catalog:manage': ['uta_admin', 'uta_editor'],
+  /** Cupones de descuento, becas y convenios (RF-04). */
+  'coupons:manage': ['uta_admin', 'uta_finance'],
+  /** Textos legales versionados (RF-11). */
+  'legal:manage': ['uta_admin'],
   /** Vista de auditoría de solo lectura (RF-12). */
   'audit:read': ['uta_admin'],
 } as const satisfies Record<string, readonly PlatformRole[]>;
