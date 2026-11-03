@@ -82,13 +82,13 @@ describe('error handling', () => {
     instance
       .withTypeProvider<ZodTypeProvider>()
       .post(
-        '/api/test/echo',
+        '/api/test/validated',
         { schema: { body: z.object({ email: z.email() }) } },
-        async (request) => request.body,
+        async () => ({ ok: true }),
       );
     const response = await instance.inject({
       method: 'POST',
-      url: '/api/test/echo',
+      url: '/api/test/validated',
       payload: { email: 'no-es-un-correo' },
     });
     expect(response.statusCode).toBe(400);
