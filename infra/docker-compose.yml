@@ -1,0 +1,95 @@
+# Servicios comunes a todos los entornos. No publica puertos de BD ni Redis.
+#   Desarrollo:  docker compose up            (desde la raíz; usa compose.yaml)
+#   Staging:     docker compose -f infra/docker-compose.yml -f infra/docker-compose.staging.yml up -d
+#   Producción:  docker compose -f infra/docker-compose.yml -f infra/docker-compose.prod.yml up -d
+
+x-app-env: &app-env
+  env_file:
+    - path: ../.env
+      required: false
+  environment:
+    DATABASE_URL: postgresql://${POSTGRES_USER:?Define POSTGRES_USER en .env}:${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}@postgres:5432/${POSTGRES_DB:?Define POSTGRES_DB en .env}
+    REDIS_URL: redis://redis:6379
+    HOST: 0.0.0.0
+    PORT: '3000'
+    TRUST_PROXY: 'true'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      TZ: UTC
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Aplica las migraciones pendientes y termina. La API arranca solo si esto tuvo éxito.
+  migrate:
+    <<: *app-env
+    image: ${IMAGE_REGISTRY:-plataforma}/api:${IMAGE_TAG:-local}
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    command: ['node_modules/.bin/prisma', 'migrate', 'deploy']
+    restart: 'no'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    <<: *app-env
+    image: ${IMAGE_REGISTRY:-plataforma}/api:${IMAGE_TAG:-local}
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  worker:
+    <<: *app-env
+    image: ${IMAGE_REGISTRY:-plataforma}/api:${IMAGE_TAG:-local}
+    command: ['node', 'dist/worker.js']
+    restart: unless-stopped
+    healthcheck:
+      disable: true
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  web:
+    image: ${IMAGE_REGISTRY:-plataforma}/web:${IMAGE_TAG:-local}
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  redisdata:

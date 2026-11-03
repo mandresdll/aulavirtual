@@ -1,0 +1,16 @@
+# Producción. ESQUELETO: se completa en la Fase 8 (imágenes del registro, respaldo diario,
+# límites de recursos, rotación de logs). APP_ENV=production bloquea los adaptadores simulados.
+services:
+  api:
+    environment:
+      APP_ENV: production
+    ports:
+      - '127.0.0.1:3000:3000'
+
+  worker:
+    environment:
+      APP_ENV: production
+
+  web:
+    ports:
+      - '127.0.0.1:8080:8080'

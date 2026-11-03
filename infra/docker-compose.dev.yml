@@ -1,0 +1,41 @@
+# Ajustes de desarrollo local: Mailpit y puertos publicados solo en 127.0.0.1.
+services:
+  postgres:
+    ports:
+      - '127.0.0.1:5432:5432'
+
+  redis:
+    ports:
+      - '127.0.0.1:6379:6379'
+
+  mailpit:
+    image: axllent/mailpit:v1.33
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:8025:8025' # interfaz web: http://localhost:8025
+      - '127.0.0.1:1025:1025' # SMTP
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 'true'
+      MP_SMTP_AUTH_ALLOW_INSECURE: 'true'
+
+  api:
+    environment:
+      SMTP_HOST: mailpit
+      SMTP_PORT: '1025'
+      PUBLIC_WEB_URL: http://localhost:8080
+      PUBLIC_API_URL: http://localhost:8080
+      CORS_ORIGINS: http://localhost:8080,http://localhost:5173
+    ports:
+      - '127.0.0.1:3000:3000'
+    depends_on:
+      mailpit:
+        condition: service_started
+
+  worker:
+    environment:
+      SMTP_HOST: mailpit
+      SMTP_PORT: '1025'
+
+  web:
+    ports:
+      - '127.0.0.1:8080:8080'

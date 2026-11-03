@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/coverage
+**/*.tsbuildinfo
+.git
+.github
+.husky
+.env
+.env.*
+playwright-report
+test-results
+tests
+docs
+infra/backup/dumps
