@@ -11,8 +11,9 @@ import type {
 const random = () => randomBytes(16).toString('base64url');
 
 /**
- * IdP simulado. La página de selección de usuario (`/api/dev/mock-idp`) se agrega en la Fase 2;
- * el `code` devuelto es el `subject` de una identidad de `MOCK_IDENTITIES`.
+ * IdP simulado. La página de selección de usuario es `/api/dev/mock-idp/authorize`
+ * (`modules/auth/mock-idp.routes.ts`); el `code` devuelto es el `subject` de una identidad de
+ * `MOCK_IDENTITIES`. `baseUrl` es la URL pública de la SPA, que reenvía `/api` a la API.
  */
 export class MockIdentityProvider implements IdentityProvider {
   readonly provider = 'mock';

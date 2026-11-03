@@ -28,6 +28,8 @@ export interface IdentityClaims {
   name: string;
   givenName?: string;
   familyName?: string;
+  /** ID Token del IdP, para pedir el cierre de sesión (`id_token_hint`). */
+  idToken?: string;
 }
 
 export interface IdentityProvider {
@@ -35,5 +37,8 @@ export interface IdentityProvider {
   createAuthorizationRequest(): Promise<AuthorizationRequest>;
   completeAuthorization(input: CompleteAuthorizationInput): Promise<IdentityClaims>;
   /** URL de cierre de sesión en el IdP, si la ofrece. */
-  getLogoutUrl(input: { postLogoutRedirectUri: string }): Promise<string | null>;
+  getLogoutUrl(input: {
+    postLogoutRedirectUri: string;
+    idTokenHint?: string;
+  }): Promise<string | null>;
 }
