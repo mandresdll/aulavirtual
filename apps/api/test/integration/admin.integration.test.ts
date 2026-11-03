@@ -35,7 +35,7 @@ function send(
   session: TestSession,
   method: 'POST' | 'PUT' | 'DELETE',
   url: string,
-  payload?: unknown,
+  payload?: Record<string, unknown>,
 ) {
   return app.inject({
     method,
@@ -88,7 +88,7 @@ afterAll(async () => {
 
 describe('login creates the platform user', () => {
   it('stores only the minimum identity data and audits the login', async () => {
-    const user = await prisma.user.findUnique({ where: { idpSubject: 'mock-editor' } });
+    const user = await prisma.user.findUniqueOrThrow({ where: { idpSubject: 'mock-editor' } });
     expect(user).toMatchObject({
       email: 'editor.uta@example.com',
       name: 'Editora UTA',
@@ -97,9 +97,9 @@ describe('login creates the platform user', () => {
       phone: null,
     });
     const login = await prisma.auditLog.findFirst({
-      where: { action: 'auth.login', actorId: user?.id },
+      where: { action: 'auth.login', actorId: user.id },
     });
-    expect(login).toMatchObject({ entityType: 'user', entityId: user?.id });
+    expect(login).toMatchObject({ entityType: 'user', entityId: user.id });
   });
 
   it('refuses to link an email that belongs to another identity', async () => {
