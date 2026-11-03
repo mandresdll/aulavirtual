@@ -118,3 +118,41 @@ stateDiagram-v2
 | Rate limit con `skipOnError`                   | Si Redis cae, la API sigue atendiendo sin límite y `/api/ready` lo reporta (disponibilidad antes que rechazar todo).                          |
 | Pruebas de integración contra servicios reales | PostgreSQL y Redis de compose en local y servicios de GitHub Actions en CI, sin Testcontainers: menos dependencias y el mismo comportamiento. |
 | Logs sin datos personales                      | pino redacta tokens, credenciales y datos personales, y quita la query string de las URLs.                                                    |
+
+## SEO de la SPA (Fase 1, RF-02)
+
+Los buscadores y las redes sociales leen el HTML antes de ejecutar JavaScript. nginx inserta
+en el `<head>` del `index.html` las etiquetas de cada página usando **SSI** (Server Side
+Includes, incluido en nginx): no hay prerender ni un servidor Node extra para el HTML.
+
+```mermaid
+sequenceDiagram
+  participant B as Navegador o buscador
+  participant N as nginx (web)
+  participant A as API
+  B->>N: GET /cursos/programacion-web
+  N->>N: try_files → index.html (ssi on)
+  N->>A: subpetición /api/seo/head<br/>X-Original-URI: /cursos/programacion-web
+  A->>A: ficha desde caché Redis o BD
+  A-->>N: title, meta, Open Graph, JSON-LD Course
+  N-->>B: index.html con las etiquetas de la página
+```
+
+- Si la API falla o responde con error, nginx usa el bloque `seo_default` del propio
+  `index.html` (título y descripción genéricos): el sitio nunca queda sin responder.
+- Solo las rutas públicas conocidas (`/`, `/cursos`, `/cursos/:slug`) son indexables; el resto
+  y los cursos inexistentes llevan `noindex`. Fuera de producción todo es `noindex` y
+  `robots.txt` bloquea el sitio (`SEO_ALLOW_INDEXING`).
+- `/sitemap.xml` y `/robots.txt` los genera la API y nginx los publica en la raíz.
+
+## Decisiones de la Fase 1
+
+| Decisión                                                          | Motivo                                                                                                                                                                                   |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Búsqueda con `tsvector` mantenido por trigger                     | Prisma no expresa columnas generadas; el trigger evita diferencias en `migrate diff`. Configuración `spanish` + `unaccent` en documento y consulta; términos por prefijo unidos con `&`. |
+| Términos de búsqueda saneados en el servidor                      | Solo letras y números llegan a `to_tsquery`, como parámetro: sin inyección ni errores de sintaxis por lo que escriba el usuario.                                                         |
+| Caché en dos niveles: ficha (60 s) y cupos (15 s)                 | La ficha cambia poco; los cupos deben verse casi en tiempo real. Redis es opcional: si falla, se lee de la BD.                                                                           |
+| Cupos = capacidad − inscripciones no retiradas − reservas activas | Las inscripciones `failed` (falló el Aula Virtual) siguen ocupando cupo: el pago ya existe.                                                                                              |
+| SEO con nginx SSI                                                 | Una sola fuente del HTML (la SPA), sin prerender ni Node para servir páginas; degradación segura si la API falla.                                                                        |
+| Triggers de "sin borrado" en la BD                                | La regla no depende del código: también protege ante errores o consultas manuales. Incluye `TRUNCATE`.                                                                                   |
+| Datos de demostración solo en desarrollo y CI                     | El contenedor `migrate` los carga con `compose.yaml`; staging y producción no cargan datos de prueba.                                                                                    |

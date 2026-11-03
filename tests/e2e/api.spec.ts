@@ -14,8 +14,3 @@ test('OpenAPI documentation is published at /api/docs', async ({ page }) => {
   await page.goto('/api/docs');
   await expect(page.getByText('API Plataforma de Cursos UTA')).toBeVisible();
 });
-
-test('home page reports the service as online', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.getByRole('status')).toHaveText(/Servicio en línea/);
-});

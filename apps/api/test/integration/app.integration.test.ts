@@ -32,6 +32,7 @@ beforeAll(async () => {
       database: databaseReadinessCheck(prisma),
       redis: redisReadinessCheck(redis),
     },
+    prisma,
     redis,
   });
   // Las rutas deben registrarse antes del primer `inject`, que deja la app iniciada.

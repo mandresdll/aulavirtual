@@ -5,6 +5,8 @@ services:
   api:
     environment:
       APP_ENV: staging
+      # Staging nunca se indexa: contenido de prueba.
+      SEO_ALLOW_INDEXING: 'false'
     ports:
       - '127.0.0.1:3000:3000' # el proxy institucional apunta aquí
 

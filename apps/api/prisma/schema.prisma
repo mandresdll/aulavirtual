@@ -1,6 +1,7 @@
-// Esquema de datos de la plataforma.
-// Fase 0: solo la tabla de configuración. El modelo de dominio completo llega en la Fase 1.
+// Esquema de datos de la plataforma (modelo de dominio de la sección 4 de la especificación).
 // Convenciones: tablas y columnas en snake_case, fechas en UTC (timestamptz), dinero en enteros CLP.
+// Lo que Prisma no expresa (búsqueda de texto, tablas append-only) está en SQL dentro de la
+// migración `20261104000000_domain_model` y documentado en apps/api/README.md.
 
 generator client {
   provider = "prisma-client-js"
@@ -9,6 +10,760 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enumeraciones
+// ---------------------------------------------------------------------------
+
+enum CourseStatus {
+  draft
+  published
+  archived
+}
+
+enum Modality {
+  online
+  in_person
+  blended
+}
+
+enum EditionStatus {
+  draft
+  published
+  closed
+  finished
+  cancelled
+}
+
+/// Tratamiento tributario configurable por edición (Q6).
+enum TaxTreatment {
+  taxed
+  exempt
+}
+
+/// Criterio de aprobación en el Aula Virtual (Q4).
+enum PassingCriterion {
+  completion
+  grade
+}
+
+enum CommunityProfile {
+  student
+  teacher
+  staff
+}
+
+enum OrderStatus {
+  pending
+  awaiting_payment
+  paid
+  failed
+  cancelled
+  refund_requested
+  refunded
+  partially_refunded
+}
+
+enum PaymentStatus {
+  created
+  authorized
+  rejected
+  aborted
+  failed
+  refunded
+  partially_refunded
+}
+
+enum RefundStatus {
+  requested
+  processing
+  completed
+  failed
+}
+
+enum EnrollmentSource {
+  purchase
+  free_institutional
+  coupon_100
+  manual_admin
+}
+
+enum EnrollmentStatus {
+  pending_lms
+  enrolled
+  failed
+  completed
+  failed_course
+  withdrawn
+}
+
+enum SeatReservationStatus {
+  active
+  consumed
+  released
+  expired
+}
+
+enum WaitlistStatus {
+  waiting
+  notified
+  converted
+  expired
+  cancelled
+}
+
+enum CouponType {
+  percentage
+  fixed_amount
+}
+
+enum CouponScope {
+  all
+  course
+  edition
+}
+
+enum CouponReason {
+  scholarship
+  agreement
+  presale
+  promotion
+  other
+}
+
+enum CertificateStatus {
+  valid
+  revoked
+  reissued
+}
+
+enum SyncStatus {
+  pending
+  synced
+  failed
+}
+
+enum SalesDocumentType {
+  receipt
+  invoice
+}
+
+enum SalesDocumentStatus {
+  pending
+  exported
+  issued
+  failed
+}
+
+enum LeadStatus {
+  active
+  unsubscribed
+}
+
+enum CampaignStatus {
+  draft
+  scheduled
+  sending
+  sent
+  cancelled
+}
+
+enum DeliveryStatus {
+  pending
+  sent
+  failed
+}
+
+enum LegalDocumentType {
+  terms
+  privacy
+  withdrawal
+  refunds
+}
+
+// ---------------------------------------------------------------------------
+// Identidad
+// ---------------------------------------------------------------------------
+
+/// Referencia a la identidad. Comunidad CFT: `sgaUserId` + `idpSubject`. Externos: Q3.
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  sgaUserId    String?  @unique @map("sga_user_id") @db.VarChar(100)
+  idpSubject   String?  @unique @map("idp_subject") @db.VarChar(255)
+  email        String   @unique @db.VarChar(254)
+  name         String   @db.VarChar(200)
+  /// RUT normalizado (sin puntos, con guion), opcional y validado con dígito verificador.
+  rut          String?  @unique @db.VarChar(12)
+  phone        String?  @db.VarChar(30)
+  moodleUserId String?  @map("moodle_user_id") @db.VarChar(50)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  cart              Cart?
+  orders            Order[]
+  enrollments       Enrollment[]
+  seatReservations  SeatReservation[]
+  waitlistEntries   WaitlistEntry[]
+  couponRedemptions CouponRedemption[]
+  refundsRequested  Refund[]
+
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Catálogo
+// ---------------------------------------------------------------------------
+
+model Area {
+  id          String   @id @default(uuid()) @db.Uuid
+  slug        String   @unique @db.VarChar(120)
+  name        String   @db.VarChar(150)
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  courses Course[]
+
+  @@map("areas")
+}
+
+model Instructor {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @db.VarChar(200)
+  /// Título o cargo visible en la ficha (p. ej. "Ingeniera en Informática").
+  title     String?  @db.VarChar(200)
+  bio       String?
+  photoUrl  String?  @map("photo_url") @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  courses CourseInstructor[]
+
+  @@map("instructors")
+}
+
+model Course {
+  id                String                   @id @default(uuid()) @db.Uuid
+  slug              String                   @unique @db.VarChar(160)
+  title             String                   @db.VarChar(200)
+  summary           String                   @db.VarChar(500)
+  description       String
+  objectives        String[]
+  contents          String[]
+  requirements      String?
+  certificationInfo String?                  @map("certification_info")
+  modality          Modality
+  durationHours     Int                      @map("duration_hours")
+  areaId            String                   @map("area_id") @db.Uuid
+  imageUrl          String?                  @map("image_url") @db.VarChar(500)
+  imageAlt          String?                  @map("image_alt") @db.VarChar(300)
+  featured          Boolean                  @default(false)
+  status            CourseStatus             @default(draft)
+  seoTitle          String?                  @map("seo_title") @db.VarChar(70)
+  seoDescription    String?                  @map("seo_description") @db.VarChar(170)
+  publishedAt       DateTime?                @map("published_at") @db.Timestamptz(3)
+  createdAt         DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+  /// Documento de búsqueda en español (sin tildes), lo mantiene un trigger. Ver la migración.
+  search            Unsupported("tsvector")?
+
+  area        Area               @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  instructors CourseInstructor[]
+  editions    CourseEdition[]
+  coupons     Coupon[]
+  leads       Lead[]
+
+  @@index([search], map: "courses_search_idx", type: Gin)
+  @@index([status, featured])
+  @@index([areaId])
+  @@map("courses")
+}
+
+model CourseInstructor {
+  courseId     String @map("course_id") @db.Uuid
+  instructorId String @map("instructor_id") @db.Uuid
+  position     Int    @default(0)
+
+  course     Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  instructor Instructor @relation(fields: [instructorId], references: [id], onDelete: Restrict)
+
+  @@id([courseId, instructorId])
+  @@map("course_instructors")
+}
+
+/// Versión de un curso con fechas, cupos y precio propios.
+model CourseEdition {
+  id                  String             @id @default(uuid()) @db.Uuid
+  courseId            String             @map("course_id") @db.Uuid
+  /// Código legible y único (p. ej. "JS-2026-1").
+  code                String             @unique @db.VarChar(40)
+  startsAt            DateTime           @map("starts_at") @db.Timestamptz(3)
+  endsAt              DateTime           @map("ends_at") @db.Timestamptz(3)
+  enrollmentOpensAt   DateTime?          @map("enrollment_opens_at") @db.Timestamptz(3)
+  enrollmentClosesAt  DateTime           @map("enrollment_closes_at") @db.Timestamptz(3)
+  capacity            Int
+  priceClp            Int                @map("price_clp")
+  taxTreatment        TaxTreatment       @default(exempt) @map("tax_treatment")
+  /// Horario y lugar en texto libre (presencial o sesiones sincrónicas).
+  schedule            String?            @db.VarChar(300)
+  location            String?            @db.VarChar(300)
+  moodleCourseId      String?            @map("moodle_course_id") @db.VarChar(50)
+  passingCriterion    PassingCriterion   @default(completion) @map("passing_criterion")
+  passingGrade        Decimal?           @map("passing_grade") @db.Decimal(5, 2)
+  certificateTemplate String?            @map("certificate_template") @db.VarChar(100)
+  /// RF-04: inscripción sin pago para la comunidad CFT con los perfiles indicados.
+  freeForCommunity    Boolean            @default(false) @map("free_for_community")
+  communityProfiles   CommunityProfile[] @map("community_profiles")
+  status              EditionStatus      @default(draft)
+  createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  course           Course            @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  cartItems        CartItem[]
+  orderItems       OrderItem[]
+  enrollments      Enrollment[]
+  seatReservations SeatReservation[]
+  waitlistEntries  WaitlistEntry[]
+  coupons          Coupon[]
+
+  @@index([courseId, status, startsAt])
+  @@map("course_editions")
+}
+
+// ---------------------------------------------------------------------------
+// Carrito, órdenes y pagos
+// ---------------------------------------------------------------------------
+
+/// Carrito persistente del usuario autenticado (el anónimo vive en el navegador).
+model Cart {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  cartId    String   @map("cart_id") @db.Uuid
+  editionId String   @map("edition_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  cart    Cart          @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  edition CourseEdition @relation(fields: [editionId], references: [id], onDelete: Restrict)
+
+  @@unique([cartId, editionId])
+  @@map("cart_items")
+}
+
+/// Sin borrado físico (trigger en la migración).
+model Order {
+  id              String            @id @default(uuid()) @db.Uuid
+  /// Número legible para el comprador y la conciliación (p. ej. "UTA-2026-000123").
+  number          String            @unique @db.VarChar(30)
+  userId          String            @map("user_id") @db.Uuid
+  status          OrderStatus       @default(pending)
+  subtotalClp     Int               @map("subtotal_clp")
+  discountClp     Int               @default(0) @map("discount_clp")
+  totalClp        Int               @map("total_clp")
+  couponId        String?           @map("coupon_id") @db.Uuid
+  documentType    SalesDocumentType @default(receipt) @map("document_type")
+  // Aceptación legal (RF-11): versiones aceptadas, hash del texto, IP y fecha.
+  legalVersions   Json?             @map("legal_versions")
+  legalHash       String?           @map("legal_hash") @db.VarChar(64)
+  legalAcceptedIp String?           @map("legal_accepted_ip") @db.VarChar(45)
+  legalAcceptedAt DateTime?         @map("legal_accepted_at") @db.Timestamptz(3)
+  // Atribución de campaña (RF-02): UTM capturados en el embudo.
+  utmSource       String?           @map("utm_source") @db.VarChar(100)
+  utmMedium       String?           @map("utm_medium") @db.VarChar(100)
+  utmCampaign     String?           @map("utm_campaign") @db.VarChar(150)
+  utmTerm         String?           @map("utm_term") @db.VarChar(150)
+  utmContent      String?           @map("utm_content") @db.VarChar(150)
+  leadId          String?           @map("lead_id") @db.Uuid
+  expiresAt       DateTime?         @map("expires_at") @db.Timestamptz(3)
+  paidAt          DateTime?         @map("paid_at") @db.Timestamptz(3)
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user              User                @relation(fields: [userId], references: [id], onDelete: Restrict)
+  coupon            Coupon?             @relation(fields: [couponId], references: [id], onDelete: Restrict)
+  lead              Lead?               @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  items             OrderItem[]
+  payments          Payment[]
+  refunds           Refund[]
+  statusHistory     OrderStatusChange[]
+  seatReservations  SeatReservation[]
+  couponRedemptions CouponRedemption[]
+  salesDocument     SalesDocument?
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@map("orders")
+}
+
+/// Ítem con los datos de la edición congelados al momento de la compra.
+model OrderItem {
+  id           String       @id @default(uuid()) @db.Uuid
+  orderId      String       @map("order_id") @db.Uuid
+  editionId    String       @map("edition_id") @db.Uuid
+  courseTitle  String       @map("course_title") @db.VarChar(200)
+  unitPriceClp Int          @map("unit_price_clp")
+  discountClp  Int          @default(0) @map("discount_clp")
+  totalClp     Int          @map("total_clp")
+  taxTreatment TaxTreatment @map("tax_treatment")
+
+  order      Order         @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  edition    CourseEdition @relation(fields: [editionId], references: [id], onDelete: Restrict)
+  enrollment Enrollment?
+
+  @@unique([orderId, editionId])
+  @@map("order_items")
+}
+
+/// Historial de estados de la orden (RF-08). Append-only.
+model OrderStatusChange {
+  id         String       @id @default(uuid()) @db.Uuid
+  orderId    String       @map("order_id") @db.Uuid
+  fromStatus OrderStatus? @map("from_status")
+  toStatus   OrderStatus  @map("to_status")
+  reason     String?      @db.VarChar(300)
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@index([orderId, createdAt])
+  @@map("order_status_changes")
+}
+
+/// Solo los datos que entrega la pasarela; nunca datos de tarjeta. Sin borrado físico.
+model Payment {
+  id                String        @id @default(uuid()) @db.Uuid
+  orderId           String        @map("order_id") @db.Uuid
+  provider          String        @db.VarChar(30)
+  buyOrder          String        @unique @map("buy_order") @db.VarChar(26)
+  token             String?       @unique @db.VarChar(100)
+  amountClp         Int           @map("amount_clp")
+  status            PaymentStatus @default(created)
+  authorizationCode String?       @map("authorization_code") @db.VarChar(20)
+  cardLast4         String?       @map("card_last4") @db.VarChar(4)
+  paymentType       String?       @map("payment_type") @db.VarChar(10)
+  installments      Int?
+  /// Respuesta de la pasarela sin datos sensibles.
+  rawResponse       Json?         @map("raw_response")
+  idempotencyKey    String        @unique @map("idempotency_key") @db.VarChar(100)
+  confirmedAt       DateTime?     @map("confirmed_at") @db.Timestamptz(3)
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  refunds Refund[]
+
+  @@index([orderId])
+  @@index([status, createdAt])
+  @@map("payments")
+}
+
+/// Devolución total o parcial vía pasarela. Sin borrado físico.
+model Refund {
+  id               String       @id @default(uuid()) @db.Uuid
+  paymentId        String       @map("payment_id") @db.Uuid
+  orderId          String       @map("order_id") @db.Uuid
+  amountClp        Int          @map("amount_clp")
+  status           RefundStatus @default(requested)
+  reason           String       @db.VarChar(500)
+  providerResponse Json?        @map("provider_response")
+  idempotencyKey   String       @unique @map("idempotency_key") @db.VarChar(100)
+  requestedById    String?      @map("requested_by_id") @db.Uuid
+  completedAt      DateTime?    @map("completed_at") @db.Timestamptz(3)
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  payment     Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  requestedBy User?   @relation(fields: [requestedById], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@map("refunds")
+}
+
+// ---------------------------------------------------------------------------
+// Inscripciones y cupos
+// ---------------------------------------------------------------------------
+
+model Enrollment {
+  id              String           @id @default(uuid()) @db.Uuid
+  userId          String           @map("user_id") @db.Uuid
+  editionId       String           @map("edition_id") @db.Uuid
+  orderItemId     String?          @unique @map("order_item_id") @db.Uuid
+  source          EnrollmentSource
+  status          EnrollmentStatus @default(pending_lms)
+  lmsSyncAttempts Int              @default(0) @map("lms_sync_attempts")
+  lastLmsError    String?          @map("last_lms_error") @db.VarChar(1000)
+  grade           Decimal?         @db.Decimal(5, 2)
+  enrolledAt      DateTime?        @map("enrolled_at") @db.Timestamptz(3)
+  completedAt     DateTime?        @map("completed_at") @db.Timestamptz(3)
+  withdrawnAt     DateTime?        @map("withdrawn_at") @db.Timestamptz(3)
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  edition      CourseEdition @relation(fields: [editionId], references: [id], onDelete: Restrict)
+  orderItem    OrderItem?    @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+  certificates Certificate[]
+
+  /// Un usuario se inscribe una sola vez por edición.
+  @@unique([userId, editionId])
+  @@index([editionId, status])
+  @@map("enrollments")
+}
+
+/// Reserva temporal de cupo durante el checkout (TTL).
+model SeatReservation {
+  id        String                @id @default(uuid()) @db.Uuid
+  editionId String                @map("edition_id") @db.Uuid
+  userId    String                @map("user_id") @db.Uuid
+  orderId   String?               @map("order_id") @db.Uuid
+  status    SeatReservationStatus @default(active)
+  expiresAt DateTime              @map("expires_at") @db.Timestamptz(3)
+  createdAt DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  edition CourseEdition @relation(fields: [editionId], references: [id], onDelete: Restrict)
+  user    User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  order   Order?        @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@index([editionId, status, expiresAt])
+  @@map("seat_reservations")
+}
+
+model WaitlistEntry {
+  id         String         @id @default(uuid()) @db.Uuid
+  editionId  String         @map("edition_id") @db.Uuid
+  userId     String         @map("user_id") @db.Uuid
+  position   Int
+  status     WaitlistStatus @default(waiting)
+  notifiedAt DateTime?      @map("notified_at") @db.Timestamptz(3)
+  /// Plazo para comprar después de la notificación.
+  expiresAt  DateTime?      @map("expires_at") @db.Timestamptz(3)
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  edition CourseEdition @relation(fields: [editionId], references: [id], onDelete: Restrict)
+  user    User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([editionId, userId])
+  @@index([editionId, status, position])
+  @@map("waitlist_entries")
+}
+
+// ---------------------------------------------------------------------------
+// Cupones
+// ---------------------------------------------------------------------------
+
+model Coupon {
+  id             String       @id @default(uuid()) @db.Uuid
+  code           String       @unique @db.VarChar(40)
+  type           CouponType
+  /// Porcentaje (1–100) o monto en CLP según `type`.
+  value          Int
+  scope          CouponScope  @default(all)
+  courseId       String?      @map("course_id") @db.Uuid
+  editionId      String?      @map("edition_id") @db.Uuid
+  validFrom      DateTime?    @map("valid_from") @db.Timestamptz(3)
+  validUntil     DateTime?    @map("valid_until") @db.Timestamptz(3)
+  maxUses        Int?         @map("max_uses")
+  maxUsesPerUser Int?         @default(1) @map("max_uses_per_user")
+  usesCount      Int          @default(0) @map("uses_count")
+  reason         CouponReason @default(promotion)
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  course      Course?            @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  edition     CourseEdition?     @relation(fields: [editionId], references: [id], onDelete: Restrict)
+  orders      Order[]
+  redemptions CouponRedemption[]
+
+  @@map("coupons")
+}
+
+model CouponRedemption {
+  id        String   @id @default(uuid()) @db.Uuid
+  couponId  String   @map("coupon_id") @db.Uuid
+  orderId   String   @unique @map("order_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Restrict)
+  order  Order  @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([couponId, userId])
+  @@map("coupon_redemptions")
+}
+
+// ---------------------------------------------------------------------------
+// Certificados y documentos de venta
+// ---------------------------------------------------------------------------
+
+model Certificate {
+  id                    String            @id @default(uuid()) @db.Uuid
+  enrollmentId          String            @map("enrollment_id") @db.Uuid
+  /// Código verificable no secuencial (base32 legible).
+  code                  String            @unique @db.VarChar(16)
+  /// Nombre impreso (permite reemitir por corrección de nombre).
+  recipientName         String            @map("recipient_name") @db.VarChar(200)
+  grade                 Decimal?          @db.Decimal(5, 2)
+  issuedAt              DateTime          @map("issued_at") @db.Timestamptz(3)
+  pdfSha256             String?           @map("pdf_sha256") @db.VarChar(64)
+  status                CertificateStatus @default(valid)
+  previousCertificateId String?           @unique @map("previous_certificate_id") @db.Uuid
+  revokedAt             DateTime?         @map("revoked_at") @db.Timestamptz(3)
+  revocationReason      String?           @map("revocation_reason") @db.VarChar(500)
+  validatorSyncStatus   SyncStatus        @default(pending) @map("validator_sync_status")
+  validatorSyncedAt     DateTime?         @map("validator_synced_at") @db.Timestamptz(3)
+  validatorLastError    String?           @map("validator_last_error") @db.VarChar(1000)
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  enrollment          Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+  previousCertificate Certificate? @relation("CertificateReissue", fields: [previousCertificateId], references: [id], onDelete: Restrict)
+  reissuedAs          Certificate? @relation("CertificateReissue")
+
+  @@index([enrollmentId])
+  @@map("certificates")
+}
+
+/// Registro para emitir boleta o factura (RF-08). Datos tributarios solo si es factura.
+model SalesDocument {
+  id               String              @id @default(uuid()) @db.Uuid
+  orderId          String              @unique @map("order_id") @db.Uuid
+  type             SalesDocumentType
+  receiverRut      String?             @map("receiver_rut") @db.VarChar(12)
+  receiverName     String?             @map("receiver_name") @db.VarChar(200)
+  receiverActivity String?             @map("receiver_activity") @db.VarChar(200)
+  receiverAddress  String?             @map("receiver_address") @db.VarChar(300)
+  status           SalesDocumentStatus @default(pending)
+  externalFolio    String?             @map("external_folio") @db.VarChar(50)
+  exportedAt       DateTime?           @map("exported_at") @db.Timestamptz(3)
+  lastError        String?             @map("last_error") @db.VarChar(1000)
+  createdAt        DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@index([status])
+  @@map("sales_documents")
+}
+
+// ---------------------------------------------------------------------------
+// Difusión
+// ---------------------------------------------------------------------------
+
+/// Interesado con consentimiento explícito (RF-02, Ley 21.719).
+model Lead {
+  id               String     @id @default(uuid()) @db.Uuid
+  email            String     @db.VarChar(254)
+  name             String?    @db.VarChar(200)
+  courseId         String?    @map("course_id") @db.Uuid
+  consentText      String     @map("consent_text")
+  consentVersion   String     @map("consent_version") @db.VarChar(20)
+  consentedAt      DateTime   @map("consented_at") @db.Timestamptz(3)
+  utmSource        String?    @map("utm_source") @db.VarChar(100)
+  utmMedium        String?    @map("utm_medium") @db.VarChar(100)
+  utmCampaign      String?    @map("utm_campaign") @db.VarChar(150)
+  utmTerm          String?    @map("utm_term") @db.VarChar(150)
+  utmContent       String?    @map("utm_content") @db.VarChar(150)
+  status           LeadStatus @default(active)
+  unsubscribeToken String     @unique @map("unsubscribe_token") @db.VarChar(64)
+  unsubscribedAt   DateTime?  @map("unsubscribed_at") @db.Timestamptz(3)
+  createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  course     Course?            @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  orders     Order[]
+  deliveries CampaignDelivery[]
+
+  @@index([email])
+  @@index([status])
+  @@map("leads")
+}
+
+model Campaign {
+  id          String         @id @default(uuid()) @db.Uuid
+  subject     String         @db.VarChar(200)
+  body        String
+  status      CampaignStatus @default(draft)
+  scheduledAt DateTime?      @map("scheduled_at") @db.Timestamptz(3)
+  sentAt      DateTime?      @map("sent_at") @db.Timestamptz(3)
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  deliveries CampaignDelivery[]
+
+  @@map("campaigns")
+}
+
+model CampaignDelivery {
+  id         String         @id @default(uuid()) @db.Uuid
+  campaignId String         @map("campaign_id") @db.Uuid
+  leadId     String         @map("lead_id") @db.Uuid
+  status     DeliveryStatus @default(pending)
+  sentAt     DateTime?      @map("sent_at") @db.Timestamptz(3)
+  lastError  String?        @map("last_error") @db.VarChar(1000)
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  lead     Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, leadId])
+  @@map("campaign_deliveries")
+}
+
+// ---------------------------------------------------------------------------
+// Textos legales, auditoría y configuración
+// ---------------------------------------------------------------------------
+
+/// Textos legales versionados (RF-11). Una versión publicada no se modifica.
+model LegalDocument {
+  id            String            @id @default(uuid()) @db.Uuid
+  type          LegalDocumentType
+  version       String            @db.VarChar(20)
+  title         String            @db.VarChar(200)
+  content       String
+  contentSha256 String            @map("content_sha256") @db.VarChar(64)
+  effectiveFrom DateTime          @map("effective_from") @db.Timestamptz(3)
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@unique([type, version])
+  @@index([type, effectiveFrom])
+  @@map("legal_documents")
+}
+
+/// Registro de auditoría append-only (RF-12): un trigger impide UPDATE y DELETE.
+model AuditLog {
+  id         BigInt   @id @default(autoincrement())
+  actorId    String?  @map("actor_id") @db.VarChar(100)
+  actorRole  String?  @map("actor_role") @db.VarChar(50)
+  action     String   @db.VarChar(100)
+  entityType String   @map("entity_type") @db.VarChar(60)
+  entityId   String?  @map("entity_id") @db.VarChar(100)
+  before     Json?
+  after      Json?
+  ip         String?  @db.VarChar(45)
+  userAgent  String?  @map("user_agent") @db.VarChar(500)
+  requestId  String?  @map("request_id") @db.VarChar(100)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([entityType, entityId])
+  @@index([actorId, createdAt])
+  @@index([createdAt])
+  @@map("audit_logs")
 }
 
 /// Parámetros configurables desde el panel (textos, identidad gráfica, etc.).
