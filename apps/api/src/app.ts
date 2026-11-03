@@ -14,6 +14,7 @@ import type { Integrations } from './integrations/index.js';
 import { adminRoutes } from './modules/admin/admin.routes.js';
 import { AdminAreasService, AdminInstructorsService } from './modules/admin/areas.service.js';
 import { AuditLogService } from './modules/admin/audit-log.service.js';
+import { AdminCouponsService } from './modules/admin/coupons.service.js';
 import { AdminCoursesService } from './modules/admin/courses.service.js';
 import { CatalogCacheInvalidator } from './modules/admin/support.js';
 import { accessPlugin } from './modules/auth/access.plugin.js';
@@ -31,7 +32,11 @@ import { PrismaCatalogRepository } from './modules/catalog/catalog.prisma-reposi
 import type { CatalogRepository } from './modules/catalog/catalog.repository.js';
 import { catalogRoutes } from './modules/catalog/catalog.routes.js';
 import { CatalogService } from './modules/catalog/catalog.service.js';
+import { checkoutRoutes } from './modules/checkout/checkout.routes.js';
+import { CheckoutService } from './modules/checkout/checkout.service.js';
 import { healthRoutes, type ReadinessCheck } from './modules/health/health.routes.js';
+import { legalRoutes } from './modules/legal/legal.routes.js';
+import { LegalService } from './modules/legal/legal.service.js';
 import { seoRoutes } from './modules/seo/seo.routes.js';
 import { auditPlugin, PrismaAuditRecorder, type AuditRecorder } from './plugins/audit.js';
 import { errorsPlugin } from './plugins/errors.js';
@@ -138,6 +143,16 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
     invalidator: new CatalogCacheInvalidator(cache),
   };
 
+  const legal = new LegalService(deps.prisma, recorder, deps.now);
+  const checkout = new CheckoutService({
+    prisma: deps.prisma,
+    audit: recorder,
+    legal,
+    cache,
+    reservationTtlMinutes: env.SEAT_RESERVATION_TTL_MINUTES,
+    ...(deps.now ? { now: deps.now } : {}),
+  });
+
   await app.register(
     async (api) => {
       await api.register(healthRoutes, {
@@ -159,6 +174,21 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
         instructors: new AdminInstructorsService(adminDeps),
         courses: new AdminCoursesService(adminDeps),
         auditLog: new AuditLogService(deps.prisma),
+        coupons: new AdminCouponsService(adminDeps),
+      });
+      await api.register(legalRoutes, {
+        legal,
+        provider: {
+          name: env.SELLER_NAME,
+          rut: env.SELLER_RUT,
+          address: env.SELLER_ADDRESS,
+          email: env.SELLER_EMAIL,
+          phone: env.SELLER_PHONE,
+        },
+      });
+      await api.register(checkoutRoutes, {
+        checkout,
+        rateLimit: { max: env.CHECKOUT_RATE_LIMIT_MAX, timeWindowMs: env.RATE_LIMIT_WINDOW_MS },
       });
       await api.register(seoRoutes, {
         catalog,

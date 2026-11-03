@@ -48,6 +48,17 @@ export const EnvSchema = z
     SEATS_CACHE_TTL_SECONDS: positiveInt.default(15),
     SEO_ALLOW_INDEXING: flag.default(false),
 
+    SEAT_RESERVATION_TTL_MINUTES: positiveInt.max(120).default(15),
+    CHECKOUT_RATE_LIMIT_MAX: positiveInt.default(30),
+
+    SELLER_NAME: z
+      .string()
+      .default('Centro de Formación Técnica Estatal de Magallanes y la Antártica Chilena'),
+    SELLER_RUT: z.string().default('Por confirmar'),
+    SELLER_ADDRESS: z.string().default('Por confirmar'),
+    SELLER_EMAIL: z.string().default('Por confirmar'),
+    SELLER_PHONE: z.string().default('Por confirmar'),
+
     MAILER_DRIVER: z.enum(['smtp', 'memory']).default('smtp'),
     SMTP_HOST: z.string().default('localhost'),
     SMTP_PORT: port.default(1025),

@@ -385,6 +385,8 @@ model Order {
   utmTerm         String?           @map("utm_term") @db.VarChar(150)
   utmContent      String?           @map("utm_content") @db.VarChar(150)
   leadId          String?           @map("lead_id") @db.Uuid
+  /// Clave enviada por la SPA al confirmar el checkout: un reintento devuelve la misma orden.
+  idempotencyKey  String?           @unique @map("idempotency_key") @db.VarChar(100)
   expiresAt       DateTime?         @map("expires_at") @db.Timestamptz(3)
   paidAt          DateTime?         @map("paid_at") @db.Timestamptz(3)
   createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
