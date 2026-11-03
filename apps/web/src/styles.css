@@ -1,0 +1,62 @@
+@import 'tailwindcss';
+
+/*
+ * Tokens de identidad gráfica. Valores PROVISORIOS basados en el burdeo institucional (Q8):
+ * se reemplazan con la guía oficial del SGA y, en fases siguientes, desde la configuración
+ * del panel (tabla `settings`) sobrescribiendo estas variables en :root.
+ * Contraste verificado: texto blanco sobre --brand-700 y --brand-800 supera 4.5:1 (WCAG AA).
+ */
+:root {
+  --brand-50: #fbf2f4;
+  --brand-100: #f5dfe5;
+  --brand-600: #93294b;
+  --brand-700: #7a1f3d;
+  --brand-800: #5f1830;
+  --brand-900: #431122;
+  --accent-500: #c8a24a;
+  --surface: #ffffff;
+  --surface-muted: #f6f5f4;
+  --ink: #1f1a1c;
+  --ink-muted: #57505a;
+  --focus-ring: #1d4ed8;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+@theme inline {
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+  --color-accent-500: var(--accent-500);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --font-sans: var(--font-sans);
+}
+
+@layer base {
+  html {
+    color: var(--ink);
+    background: var(--surface);
+    font-family: var(--font-sans);
+  }
+
+  /* Foco siempre visible al navegar con teclado (WCAG 2.4.7). */
+  :focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
