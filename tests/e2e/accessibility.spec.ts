@@ -14,6 +14,8 @@ const PUBLIC_PAGES = [
   { name: 'curso inexistente', path: '/cursos/no-existe' },
   { name: 'página no encontrada', path: '/no-existe' },
   { name: 'ingreso', path: '/ingresar?error=cancelado' },
+  { name: 'carrito vacío', path: '/carrito' },
+  { name: 'términos y condiciones', path: '/legal/terminos' },
 ];
 
 for (const page of PUBLIC_PAGES) {
