@@ -4,12 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#7a1f3d" />
-    <!-- Título y metadatos por defecto. En la Fase 1 el servidor los reemplaza en /cursos/:slug (SEO). -->
+    <!--
+      SEO (RF-02): en el contenedor web, nginx (SSI) reemplaza el include por las etiquetas
+      de cada página (título, Open Graph, Twitter Card, JSON-LD) que entrega /api/seo/head.
+      Con `vite dev`/`vite preview` no hay SSI y se ven las etiquetas por defecto del bloque.
+    -->
+    <!--# block name="seo_default" -->
     <title>Cursos UTA · CFT Estatal de Magallanes</title>
     <meta
       name="description"
       content="Catálogo de cursos de la Unidad de Tecnologías para el Aprendizaje del CFT Estatal de Magallanes y la Antártica Chilena."
     />
+    <!--# endblock -->
+    <!--# include virtual="/__seo_head" stub="seo_default" -->
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
   <body>

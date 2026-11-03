@@ -4,6 +4,8 @@ services:
   api:
     environment:
       APP_ENV: production
+      # Solo producción permite que los buscadores indexen el sitio (robots.txt y meta robots).
+      SEO_ALLOW_INDEXING: 'true'
     ports:
       - '127.0.0.1:3000:3000'
 
