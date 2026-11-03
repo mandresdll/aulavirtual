@@ -28,6 +28,15 @@ Especificación completa: [PROMPT_CLAUDE_CODE.md](PROMPT_CLAUDE_CODE.md). Se tra
 - **Pruebas**: Vitest, `fastify.inject`/Supertest, Playwright + axe-core, k6.
 - **Monorepo** pnpm workspaces: `apps/api`, `apps/web`, `packages/shared`, `infra/`, `docs/`, `tests/e2e`, `tests/load`.
 
+## Comandos y convenciones del repo
+
+- `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`: lo que exige la regla 11. `pnpm test:integration` necesita `docker compose up -d postgres redis`; `pnpm test:e2e` usa `vite preview` o `E2E_BASE_URL`.
+- Variables nuevas: agregarlas a `apps/api/src/config/env.ts` **y** a `.env.example` (una prueba falla si falta alguna).
+- Integraciones: `apps/api/src/integrations/<sistema>/{port,mock,<real>}.ts` + `<sistema>.contract.ts`; elegir el adaptador en `integrations/index.ts`.
+- Errores al cliente: lanzar `AppError` (mensaje en español); el plugin de errores da el formato `{ error: { code, message, details?, requestId } }`.
+- Esquemas que usa la SPA van en `packages/shared`; la API y la SPA importan `@plataforma/shared`.
+- Migraciones: `pnpm --filter @plataforma/api db:migrate` (nunca editar una migración ya aplicada).
+
 ## Restricciones de dominio que no se negocian
 
 - Unicidad de inscripción por usuario + edición; control de cupos transaccional.

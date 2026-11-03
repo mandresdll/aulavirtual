@@ -1,0 +1,6 @@
+# Punto de entrada para desarrollo local: `docker compose up` desde la raíz del repo.
+# Combina los servicios comunes con los ajustes de desarrollo (Mailpit, puertos locales).
+include:
+  - path:
+      - infra/docker-compose.yml
+      - infra/docker-compose.dev.yml

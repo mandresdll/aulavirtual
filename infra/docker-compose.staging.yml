@@ -1,0 +1,17 @@
+# Staging (ambiente de pruebas de la UTA). ESQUELETO: se completa en la Fase 8
+# (imágenes del registro, respaldos, límites de recursos y logs).
+# Pasarela en modo integración y Aula Virtual de pruebas; adaptadores simulados permitidos.
+services:
+  api:
+    environment:
+      APP_ENV: staging
+    ports:
+      - '127.0.0.1:3000:3000' # el proxy institucional apunta aquí
+
+  worker:
+    environment:
+      APP_ENV: staging
+
+  web:
+    ports:
+      - '127.0.0.1:8080:8080'

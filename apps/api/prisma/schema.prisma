@@ -1,0 +1,22 @@
+// Esquema de datos de la plataforma.
+// Fase 0: solo la tabla de configuración. El modelo de dominio completo llega en la Fase 1.
+// Convenciones: tablas y columnas en snake_case, fechas en UTC (timestamptz), dinero en enteros CLP.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Parámetros configurables desde el panel (textos, identidad gráfica, etc.).
+model Setting {
+  key       String   @id @db.VarChar(100)
+  value     Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("settings")
+}
