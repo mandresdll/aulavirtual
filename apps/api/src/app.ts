@@ -11,6 +11,11 @@ import type { LoggerOptions } from 'pino';
 import type { Env } from './config/env.js';
 import { NoCache, RedisCache, type Cache } from './infra/cache.js';
 import type { Integrations } from './integrations/index.js';
+import { adminRoutes } from './modules/admin/admin.routes.js';
+import { AdminAreasService, AdminInstructorsService } from './modules/admin/areas.service.js';
+import { AuditLogService } from './modules/admin/audit-log.service.js';
+import { AdminCoursesService } from './modules/admin/courses.service.js';
+import { CatalogCacheInvalidator } from './modules/admin/support.js';
 import { accessPlugin } from './modules/auth/access.plugin.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { mockIdpRoutes } from './modules/auth/mock-idp.routes.js';
@@ -101,6 +106,8 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
   const roles = new RoleResolver(deps.integrations.sga, cache, env.SGA_ROLES_CACHE_TTL_SECONDS);
   const webUrl = env.PUBLIC_WEB_URL.replace(/\/+$/, '');
 
+  const recorder = deps.audit ?? new PrismaAuditRecorder(deps.prisma);
+
   await app.register(sessionPlugin, {
     store:
       deps.sessionStore ??
@@ -110,7 +117,7 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
     secure: env.SESSION_COOKIE_SECURE,
     ...(deps.now ? { now: () => (deps.now as () => Date)().getTime() } : {}),
   });
-  await app.register(auditPlugin, { recorder: deps.audit ?? new PrismaAuditRecorder(deps.prisma) });
+  await app.register(auditPlugin, { recorder });
   await app.register(accessPlugin, {
     roles,
     allowedOrigins: [env.PUBLIC_WEB_URL, ...(env.CORS_ORIGINS ?? [])],
@@ -124,6 +131,12 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
     seatsTtlSeconds: env.SEATS_CACHE_TTL_SECONDS,
     ...(deps.now ? { now: deps.now } : {}),
   });
+
+  const adminDeps = {
+    prisma: deps.prisma,
+    audit: recorder,
+    invalidator: new CatalogCacheInvalidator(cache),
+  };
 
   await app.register(
     async (api) => {
@@ -141,6 +154,12 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
         rateLimit: { max: env.AUTH_RATE_LIMIT_MAX, timeWindowMs: env.RATE_LIMIT_WINDOW_MS },
       });
       if (env.IDENTITY_DRIVER === 'mock') await api.register(mockIdpRoutes);
+      await api.register(adminRoutes, {
+        areas: new AdminAreasService(adminDeps),
+        instructors: new AdminInstructorsService(adminDeps),
+        courses: new AdminCoursesService(adminDeps),
+        auditLog: new AuditLogService(deps.prisma),
+      });
       await api.register(seoRoutes, {
         catalog,
         site: {
