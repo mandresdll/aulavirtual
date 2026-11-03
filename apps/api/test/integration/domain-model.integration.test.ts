@@ -1,6 +1,11 @@
 import { Prisma, type PrismaClient } from '@prisma/client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { DEMO_COUPON_CODE, seedDemoData } from '../../src/db/demo-seed.js';
+import {
+  DEMO_AREA_SLUGS,
+  DEMO_COUPON_CODE,
+  DEMO_COURSE_SLUGS,
+  seedDemoData,
+} from '../../src/db/demo-seed.js';
 import { createPrismaClient } from '../../src/infra/database.js';
 import { daysFromNow, integrationEnv, resetCatalogData } from './helpers.js';
 
@@ -120,11 +125,13 @@ describe('demo seed', () => {
   it('loads the demo catalog and can run twice without duplicating data', async () => {
     await resetCatalogData(prisma);
     const first = await seedDemoData(prisma);
+    // Solo los datos de demostración: otras pruebas dejan órdenes, que no se pueden borrar.
+    const demoCourse = { slug: { in: DEMO_COURSE_SLUGS } };
     const counts = async () => ({
-      areas: await prisma.area.count(),
-      courses: await prisma.course.count({ where: { status: 'published' } }),
-      editions: await prisma.courseEdition.count(),
-      enrollments: await prisma.enrollment.count(),
+      areas: await prisma.area.count({ where: { slug: { in: DEMO_AREA_SLUGS } } }),
+      courses: await prisma.course.count({ where: { ...demoCourse, status: 'published' } }),
+      editions: await prisma.courseEdition.count({ where: { course: demoCourse } }),
+      enrollments: await prisma.enrollment.count({ where: { edition: { course: demoCourse } } }),
       coupons: await prisma.coupon.count({ where: { code: DEMO_COUPON_CODE } }),
     });
     const before = await counts();
