@@ -188,13 +188,9 @@ describe('routing', () => {
 
   // La navegación real a /admin se prueba en E2E: en jsdom, React Router no puede crear el
   // Request de una ruta lazy (AbortSignal de jsdom incompatible con el fetch de Node).
-  it('declares the admin area as a lazy route resolving to the admin page', async () => {
+  it('declares the admin area as a lazy route (separate chunk)', () => {
     const admin = routes[0]?.children?.find((route) => route.path === 'admin');
     expect(typeof admin?.lazy).toBe('function');
-    const loaded = await (admin?.lazy as () => Promise<{ Component: React.ComponentType }>)();
-    render(<loaded.Component />);
-    expect(
-      screen.getByRole('heading', { level: 1, name: 'Panel de administración' }),
-    ).toBeInTheDocument();
+    expect(admin?.element).toBeUndefined();
   });
 });

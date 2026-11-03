@@ -1,18 +1,52 @@
+import { hasPermission } from '@plataforma/shared';
+import { Link } from 'react-router';
+import { useSession } from '../../lib/session';
 import { useDocumentTitle } from '../../lib/use-document-title';
 
-/**
- * Panel de administración. Se carga en un chunk aparte (code splitting) para que el sitio
- * público no descargue el código del panel. Protección por roles: Fase 2.
- */
+const CARDS = [
+  {
+    to: '/admin/cursos',
+    title: 'Cursos y ediciones',
+    text: 'Crea cursos, publícalos y gestiona sus ediciones: fechas, cupos y precios.',
+  },
+  { to: '/admin/areas', title: 'Áreas', text: 'Áreas temáticas que agrupan los cursos.' },
+  { to: '/admin/docentes', title: 'Docentes', text: 'Docentes que se muestran en las fichas.' },
+];
+
+/** Inicio del panel de administración. */
 export function AdminHomePage() {
   useDocumentTitle('Administración');
+  const session = useSession();
+  const user = session.data?.authenticated ? session.data.user : null;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12">
+    <div>
       <h1 className="text-2xl font-bold text-brand-800">Panel de administración</h1>
-      <p className="mt-2 text-ink-muted">
-        El acceso con cuenta institucional y la gestión de cursos se habilitan en la Fase 2.
-      </p>
+      {user && <p className="mt-2 text-ink-muted">Hola, {user.name}.</p>}
+      <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {CARDS.map((card) => (
+          <li key={card.to} className="rounded-lg border border-gray-200 p-4">
+            <h2 className="font-semibold">
+              <Link to={card.to} className="text-brand-700 underline">
+                {card.title}
+              </Link>
+            </h2>
+            <p className="mt-1 text-sm text-ink-muted">{card.text}</p>
+          </li>
+        ))}
+        {user && hasPermission(user.roles, 'audit:read') && (
+          <li className="rounded-lg border border-gray-200 p-4">
+            <h2 className="font-semibold">
+              <Link to="/admin/auditoria" className="text-brand-700 underline">
+                Auditoría
+              </Link>
+            </h2>
+            <p className="mt-1 text-sm text-ink-muted">
+              Registro de solo lectura de los cambios y accesos.
+            </p>
+          </li>
+        )}
+      </ul>
     </div>
   );
 }

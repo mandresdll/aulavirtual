@@ -1,4 +1,4 @@
-import { ErrorResponseSchema } from '@plataforma/shared';
+import { CSRF_HEADER, ErrorResponseSchema } from '@plataforma/shared';
 import type { z } from 'zod';
 
 /** Error de la API con el mensaje en español que ya entrega el servidor. */
@@ -45,4 +45,52 @@ export async function apiFetch<T extends z.ZodType>(
     throw new ApiError(response.status, 'UNKNOWN_ERROR', NETWORK_ERROR_MESSAGE);
   }
   return schema.parse(body);
+}
+
+let csrfToken: string | null = null;
+
+/** Token CSRF de la sesión actual; lo fija `useSession` al leer `/api/auth/session`. */
+export function setCsrfToken(token: string | null) {
+  csrfToken = token;
+}
+
+/**
+ * Mutación (POST, PUT, DELETE) con el token CSRF de la sesión. `schema` valida la respuesta;
+ * `null` para respuestas sin contenido (204).
+ */
+export async function apiSend<T extends z.ZodType>(
+  path: string,
+  method: 'POST' | 'PUT' | 'DELETE',
+  schema: T | null,
+  body?: unknown,
+): Promise<z.infer<T>> {
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      method,
+      credentials: 'include',
+      headers: {
+        Accept: 'application/json',
+        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...(csrfToken ? { [CSRF_HEADER]: csrfToken } : {}),
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+  } catch {
+    throw new ApiError(0, 'NETWORK_ERROR', NETWORK_ERROR_MESSAGE);
+  }
+  if (response.status === 204 || schema === null) {
+    if (!response.ok) await throwApiError(response);
+    return null as z.infer<T>;
+  }
+  if (!response.ok) await throwApiError(response);
+  return schema.parse(await response.json());
+}
+
+async function throwApiError(response: Response): Promise<never> {
+  const parsed = ErrorResponseSchema.safeParse(await response.json().catch(() => null));
+  if (parsed.success) {
+    throw new ApiError(response.status, parsed.data.error.code, parsed.data.error.message);
+  }
+  throw new ApiError(response.status, 'UNKNOWN_ERROR', NETWORK_ERROR_MESSAGE);
 }
