@@ -34,6 +34,8 @@ beforeAll(async () => {
     },
     redis,
   });
+  // Las rutas deben registrarse antes del primer `inject`, que deja la app iniciada.
+  app.get('/api/test/limited', async () => ({ ok: true }));
 });
 
 afterAll(async () => {
@@ -63,7 +65,6 @@ describe('API against real PostgreSQL and Redis', () => {
   });
 
   it('shares the rate-limit counter through Redis', async () => {
-    app.get('/api/test/limited', async () => ({ ok: true }));
     const statuses: number[] = [];
     for (let i = 0; i < 4; i++) {
       statuses.push((await app.inject({ method: 'GET', url: '/api/test/limited' })).statusCode);
