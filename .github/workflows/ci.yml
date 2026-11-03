@@ -98,7 +98,12 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Prepare environment (mock adapters)
-        run: cp .env.example .env
+        # Todas las pruebas llegan desde la misma IP (nginx): se suben los límites por IP para
+        # que el rate limit no corte el E2E. Los límites reales se prueban en las pruebas de la API.
+        run: |
+          cp .env.example .env
+          sed -i 's/^RATE_LIMIT_MAX=.*/RATE_LIMIT_MAX=5000/; s/^AUTH_RATE_LIMIT_MAX=.*/AUTH_RATE_LIMIT_MAX=500/' .env
+          grep -E '^(AUTH_)?RATE_LIMIT_MAX=' .env
       - name: Build images and start the stack
         # `migrate` es un servicio que termina; por eso se espera a /api/ready en vez de --wait.
         run: |

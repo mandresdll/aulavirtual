@@ -10,6 +10,8 @@ import { testEnv, unusedPrismaClient } from './test-support.js';
 
 let app: FastifyInstance | undefined;
 
+const PUBLIC = { access: 'public' } as const;
+
 async function createApp(
   options: {
     readinessChecks?: Record<string, () => Promise<void>>;
@@ -84,7 +86,7 @@ describe('error handling', () => {
       .withTypeProvider<ZodTypeProvider>()
       .post(
         '/api/test/validated',
-        { schema: { body: z.object({ email: z.email() }) } },
+        { config: PUBLIC, schema: { body: z.object({ email: z.email() }) } },
         async () => ({ ok: true }),
       );
     const response = await instance.inject({
@@ -101,7 +103,7 @@ describe('error handling', () => {
 
   it('maps AppError to its status and message', async () => {
     const instance = await createApp();
-    instance.get('/api/test/forbidden', async () => {
+    instance.get('/api/test/forbidden', { config: PUBLIC }, async () => {
       throw AppError.forbidden();
     });
     const response = await instance.inject({ method: 'GET', url: '/api/test/forbidden' });
@@ -111,7 +113,7 @@ describe('error handling', () => {
 
   it('hides internal details of unexpected errors', async () => {
     const instance = await createApp();
-    instance.get('/api/test/boom', async () => {
+    instance.get('/api/test/boom', { config: PUBLIC }, async () => {
       throw new Error('database password is hunter2');
     });
     const response = await instance.inject({ method: 'GET', url: '/api/test/boom' });
@@ -154,7 +156,7 @@ describe('security', () => {
 
   it('rate-limits by IP with a Spanish 429', async () => {
     const instance = await createApp({ env: { RATE_LIMIT_MAX: '2' } });
-    instance.get('/api/test/limited', async () => ({ ok: true }));
+    instance.get('/api/test/limited', { config: PUBLIC }, async () => ({ ok: true }));
     const statuses: number[] = [];
     let last;
     for (let i = 0; i < 3; i++) {
@@ -164,6 +166,15 @@ describe('security', () => {
     expect(statuses).toEqual([200, 200, 429]);
     expect(last?.json().error).toMatchObject({ code: 'RATE_LIMITED' });
     expect(last?.headers['retry-after']).toBeDefined();
+  });
+});
+
+describe('deny by default', () => {
+  it('refuses to start when an /api route does not declare its access', async () => {
+    const instance = await createApp();
+    expect(() => instance.get('/api/test/forgotten', async () => ({ ok: true }))).toThrow(
+      /must declare config.access/,
+    );
   });
 });
 

@@ -236,6 +236,8 @@ function withLiveData(edition: CachedEdition, usage: Map<string, SeatUsage>, now
 
 /** Claves de caché del catálogo, para invalidarlas al editar (panel admin, Fase 2). */
 export const catalogCacheKeys = {
+  /** Prefijo de todas las páginas del listado (una clave por combinación de filtros). */
+  listPrefix: `${KEY_PREFIX}list:`,
   course: (slug: string) => `${KEY_PREFIX}course:${slug}`,
   seats: (editionId: string) => `${KEY_PREFIX}seats:${editionId}`,
   featured: `${KEY_PREFIX}featured`,

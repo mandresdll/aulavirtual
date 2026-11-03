@@ -36,7 +36,7 @@ beforeAll(async () => {
     redis,
   });
   // Las rutas deben registrarse antes del primer `inject`, que deja la app iniciada.
-  app.get('/api/test/limited', async () => ({ ok: true }));
+  app.get('/api/test/limited', { config: { access: 'public' } }, async () => ({ ok: true }));
 });
 
 afterAll(async () => {

@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { MockIdentityProvider } from '../identity/mock.js';
 import { MOCK_IDENTITIES } from '../mock-identities.js';
 import { MockSgaGateway } from './mock.js';
+import { sgaContract } from './sga.contract.js';
+
+sgaContract('mock', () => ({ sga: new MockSgaGateway(), adminSubject: 'mock-admin' }));
 
 describe('MockSgaGateway', () => {
   const sga = new MockSgaGateway();

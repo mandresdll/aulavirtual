@@ -21,15 +21,16 @@ test('skip link moves keyboard focus to the main content', async ({ page }) => {
 test('admin area is loaded on demand as a separate chunk', async ({ page }) => {
   const chunks: string[] = [];
   page.on('request', (request) => {
-    if (request.url().includes('AdminHomePage')) chunks.push(request.url());
+    if (request.url().includes('/assets/AdminApp')) chunks.push(request.url());
   });
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   expect(chunks).toHaveLength(0);
 
+  // Sin sesión lleva a /ingresar (stack completo) o informa que la API no responde (preview).
   await page.goto('/admin');
   await expect(
-    page.getByRole('heading', { level: 1, name: 'Panel de administración' }),
+    page.getByRole('heading', { level: 1, name: /Ingresar|Panel de administración/ }),
   ).toBeVisible();
   expect(chunks).not.toHaveLength(0);
 });

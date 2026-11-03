@@ -2,6 +2,43 @@
 
 API REST (Fastify + Zod + Prisma) y worker de trabajos asíncronos (BullMQ).
 
+## Requisitos que cubre (Fase 2)
+
+- **RF-10 Identidad y roles** (`src/modules/auth/`):
+  - SSO con el IdP institucional: OIDC Authorization Code + PKCE S256 con `openid-client`
+    (`integrations/identity/oidc.ts`). En desarrollo se usa un IdP simulado con página de
+    selección de usuario (`/api/dev/mock-idp/authorize`).
+  - Sesión en Redis. El navegador solo guarda una cookie `__Host-sid` (`HttpOnly`, `Secure`,
+    `SameSite=Lax`) con un id aleatorio de 256 bits. Se renueva el id en cada inicio de sesión,
+    la sesión vence por inactividad y tiene duración máxima. El `state`, el `nonce` y el
+    verificador PKCE viven en una transacción de un solo uso, ligada al navegador por la cookie
+    `__Host-login`.
+  - Roles y perfiles desde `SgaGateway.getUserRoles` (`integrations/sga/http.ts`), con caché en
+    Redis (`SGA_ROLES_CACHE_TTL_SECONDS`) que se refresca en cada inicio de sesión. Si el SGA no
+    responde, se niega el acceso.
+  - Al ingresar se crea o actualiza el usuario con datos mínimos: id del IdP, id del SGA,
+    nombre y correo.
+- **SEG AuthZ** (`modules/auth/access.plugin.ts`):
+  - Cada ruta bajo `/api` declara `config.access`: `public`, `authenticated` o
+    `{ permission }`. Si una ruta no lo declara, la API no arranca (deny by default).
+  - Los permisos (`PERMISSIONS` en shared) se otorgan por rol.
+- **SEG CSRF**: las mutaciones con sesión exigen la cabecera `x-csrf-token`, comparada en
+  tiempo constante con el token de la sesión, y rechazan un `Origin` que no sea el de la SPA.
+- **SEG rate limit**: el login tiene su propio límite por IP (`AUTH_RATE_LIMIT_MAX`).
+- **RF-07 (parcial) Panel de administración** (`src/modules/admin/`):
+  - CRUD de áreas, docentes, cursos y ediciones.
+  - Publicar y despublicar cursos y ediciones. Archivar cursos (no se borran).
+  - Duplicar ediciones como borrador. Eliminar una edición solo si es un borrador sin uso.
+  - Cada cambio invalida la caché pública del catálogo (fichas afectadas, listados,
+    destacados, áreas y sitemap).
+- **RF-12 Auditoría** (`plugins/audit.ts`, `modules/admin/audit-log.service.ts`):
+  - `PrismaAuditRecorder` escribe en `audit_logs` (append-only por trigger) dentro de la
+    misma transacción que el cambio.
+  - Registra actor, rol, acción, entidad, antes y después (solo los campos que cambiaron), IP,
+    user agent y `requestId`.
+  - Se auditan los inicios y cierres de sesión y todas las acciones del panel.
+  - Vista de solo lectura con filtros por fecha local, usuario, acción y entidad.
+
 ## Requisitos que cubre (Fase 1)
 
 - **RF-01 Catálogo público** (`src/modules/catalog/`): listado con búsqueda de texto en
@@ -28,7 +65,7 @@ API REST (Fastify + Zod + Prisma) y worker de trabajos asíncronos (BullMQ).
 - **SEG**: helmet (CSP, HSTS), CORS restringido, rate limit por IP, validación Zod, errores sin
   detalles internos, logs sin datos personales, configuración validada.
 - **RF-03, RF-05, RF-06, RF-08, RF-10**: puertos de integración con adaptadores simulados.
-- **RF-12**: contrato de auditoría (persistencia en la Fase 2).
+- **RF-12**: contrato de auditoría (persistido desde la Fase 2).
 
 ## Estructura
 
@@ -39,7 +76,7 @@ src/
   worker.ts         proceso de colas BullMQ
   config/           variables de entorno (Zod) y logger
   plugins/          errores, seguridad, rate limit, OpenAPI, auditoría
-  modules/          módulos de dominio (health; catálogo, pagos… en fases siguientes)
+  modules/          módulos de dominio: health, catalog, seo, auth (sesión, roles, acceso), admin
   integrations/     puertos + adaptadores (ver docs/integraciones.md)
   jobs/             colas y procesadores
   infra/            clientes de PostgreSQL y Redis
@@ -61,6 +98,34 @@ test/integration/   pruebas con PostgreSQL y Redis reales
 | GET    | `/api/seo/head`                 | Etiquetas `<head>` de la página en `X-Original-URI` (nginx SSI)    |
 | GET    | `/api/seo/sitemap.xml`          | Publicado como `/sitemap.xml`                                      |
 | GET    | `/api/seo/robots.txt`           | Publicado como `/robots.txt`                                       |
+
+Autenticación (acceso público salvo el cierre de sesión):
+
+| Método | Ruta                          | Descripción                                                             |
+| ------ | ----------------------------- | ----------------------------------------------------------------------- |
+| GET    | `/api/auth/login?returnTo=`   | Redirige al IdP (rate limit por IP)                                     |
+| GET    | `/api/auth/callback`          | Retorno del IdP: crea la sesión y redirige a `returnTo` o a `/ingresar` |
+| GET    | `/api/auth/session`           | Usuario, roles, perfiles y token CSRF (`no-store`)                      |
+| POST   | `/api/auth/logout`            | Cierra la sesión (CSRF); devuelve la URL de cierre en el IdP si existe  |
+| GET    | `/api/dev/mock-idp/authorize` | Solo con `IDENTITY_DRIVER=mock`: elegir usuario de demostración         |
+
+Panel de administración. Todas las rutas exigen sesión y permiso, y las mutaciones además el
+token CSRF. `catalog:manage` corresponde a `uta_admin` y `uta_editor`; `audit:read`, solo a
+`uta_admin`.
+
+| Método     | Ruta                                                                             | Permiso          |
+| ---------- | -------------------------------------------------------------------------------- | ---------------- |
+| GET/POST   | `/api/admin/areas`                                                               | `catalog:manage` |
+| PUT/DELETE | `/api/admin/areas/{id}`                                                          | `catalog:manage` |
+| GET/POST   | `/api/admin/instructors`                                                         | `catalog:manage` |
+| PUT/DELETE | `/api/admin/instructors/{id}`                                                    | `catalog:manage` |
+| GET/POST   | `/api/admin/courses` (`q`, `status`, `page`)                                     | `catalog:manage` |
+| GET/PUT    | `/api/admin/courses/{id}`                                                        | `catalog:manage` |
+| POST       | `/api/admin/courses/{id}/publish·unpublish·archive`                              | `catalog:manage` |
+| POST       | `/api/admin/courses/{id}/editions`                                               | `catalog:manage` |
+| PUT/DELETE | `/api/admin/editions/{id}`                                                       | `catalog:manage` |
+| POST       | `/api/admin/editions/{id}/publish·unpublish·duplicate`                           | `catalog:manage` |
+| GET        | `/api/admin/audit` (`from`, `to`, `actorId`, `action`, `entityType`, `entityId`) | `audit:read`     |
 
 ## Comandos
 

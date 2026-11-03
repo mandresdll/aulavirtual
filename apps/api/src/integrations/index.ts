@@ -74,7 +74,8 @@ export function createIntegrations(env: Env): Integrations {
             redirectUri: required(env, 'OIDC_REDIRECT_URI'),
             scopes: env.OIDC_SCOPES,
           })
-        : new MockIdentityProvider({ baseUrl: env.PUBLIC_API_URL }),
+        : // Mismo origen que la SPA: la cookie de sesión y el retorno pasan por /api de la web.
+          new MockIdentityProvider({ baseUrl: env.PUBLIC_WEB_URL }),
 
     sga:
       env.SGA_DRIVER === 'http'

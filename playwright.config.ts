@@ -20,7 +20,20 @@ export default defineConfig({
     timezoneId: 'America/Punta_Arenas',
     trace: 'retain-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      testIgnore: /admin\.spec\.ts/,
+    },
+    // El panel publica y archiva cursos: corre después del catálogo, que cuenta los del seed.
+    {
+      name: 'admin',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /admin\.spec\.ts/,
+      dependencies: ['chromium'],
+    },
+  ],
   ...(externalBaseUrl
     ? {}
     : {

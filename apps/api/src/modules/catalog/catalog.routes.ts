@@ -26,6 +26,7 @@ export const catalogRoutes: FastifyPluginAsyncZod<CatalogRoutesOptions> = async 
   app.get(
     '/catalog/courses',
     {
+      config: { access: 'public' },
       schema: {
         tags: ['catálogo'],
         summary: 'Listado de cursos publicados con búsqueda, filtros y paginación',
@@ -45,6 +46,7 @@ export const catalogRoutes: FastifyPluginAsyncZod<CatalogRoutesOptions> = async 
   app.get(
     '/catalog/courses/featured',
     {
+      config: { access: 'public' },
       schema: {
         tags: ['catálogo'],
         summary: 'Cursos destacados para la portada',
@@ -60,6 +62,7 @@ export const catalogRoutes: FastifyPluginAsyncZod<CatalogRoutesOptions> = async 
   app.get(
     '/catalog/courses/:slug',
     {
+      config: { access: 'public' },
       schema: {
         tags: ['catálogo'],
         summary: 'Ficha de un curso publicado con sus ediciones vigentes y cupos',
@@ -78,6 +81,7 @@ export const catalogRoutes: FastifyPluginAsyncZod<CatalogRoutesOptions> = async 
   app.get(
     '/catalog/areas',
     {
+      config: { access: 'public' },
       schema: {
         tags: ['catálogo'],
         summary: 'Áreas con cursos publicados (para los filtros)',

@@ -1,5 +1,7 @@
+import { canAccessAdmin } from '@plataforma/shared';
 import { useEffect, useRef } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
+import { useLogout, useSession } from '../lib/session';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   `rounded px-3 py-2 text-sm font-medium text-white hover:bg-brand-800 ${
@@ -49,6 +51,7 @@ export function Layout() {
               </li>
             </ul>
           </nav>
+          <SessionMenu />
         </div>
       </header>
 
@@ -64,6 +67,47 @@ export function Layout() {
           <p>Unidad de Tecnologías para el Aprendizaje (UTA)</p>
         </div>
       </footer>
+    </div>
+  );
+}
+
+/** Ingreso o, con sesión, nombre del usuario, acceso al panel y cierre de sesión. */
+function SessionMenu() {
+  const session = useSession();
+  const logout = useLogout();
+  const location = useLocation();
+
+  if (session.isPending) return null;
+  if (!session.data?.authenticated) {
+    if (location.pathname === '/ingresar') return null;
+    const returnTo = `${location.pathname}${location.search}`;
+    return (
+      <Link
+        to={`/ingresar?${new URLSearchParams({ returnTo }).toString()}`}
+        className="rounded border border-white px-3 py-2 text-sm font-medium text-white hover:bg-brand-800"
+      >
+        Ingresar
+      </Link>
+    );
+  }
+
+  const { user } = session.data;
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm text-white">
+      <span className="font-medium">{user.name}</span>
+      {canAccessAdmin(user.roles) && (
+        <NavLink to="/admin" className={navLinkClass}>
+          Panel
+        </NavLink>
+      )}
+      <button
+        type="button"
+        onClick={() => logout.mutate()}
+        disabled={logout.isPending}
+        className="rounded border border-white px-3 py-2 font-medium hover:bg-brand-800 disabled:opacity-70"
+      >
+        Cerrar sesión
+      </button>
     </div>
   );
 }
