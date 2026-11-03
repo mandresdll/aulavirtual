@@ -63,6 +63,7 @@ export async function apiSend<T extends z.ZodType>(
   method: 'POST' | 'PUT' | 'DELETE',
   schema: T | null,
   body?: unknown,
+  extraHeaders: Record<string, string> = {},
 ): Promise<z.infer<T>> {
   let response: Response;
   try {
@@ -73,6 +74,7 @@ export async function apiSend<T extends z.ZodType>(
         Accept: 'application/json',
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
         ...(csrfToken ? { [CSRF_HEADER]: csrfToken } : {}),
+        ...extraHeaders,
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });

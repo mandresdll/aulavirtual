@@ -1,4 +1,10 @@
 import {
+  AdminCouponSchema,
+  AdminCouponsResponseSchema,
+  AdminLegalDocumentSchema,
+  AdminLegalDocumentsResponseSchema,
+  type CouponInput,
+  type LegalDocumentInput,
   AdminAreaSchema,
   AdminAreasResponseSchema,
   AdminCourseDetailSchema,
@@ -181,5 +187,43 @@ export function useAuditLog(query: AuditQuery) {
     queryKey: [...ADMIN_KEY, 'audit', query],
     queryFn: () => apiFetch(`/api/admin/audit?${toQueryString(query)}`, AuditListResponseSchema),
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useAdminCoupons() {
+  return useQuery({
+    queryKey: [...ADMIN_KEY, 'coupons'],
+    queryFn: () => apiFetch('/api/admin/coupons', AdminCouponsResponseSchema),
+  });
+}
+
+export function useSaveCoupon() {
+  const invalidate = useInvalidateAdmin();
+  return useMutation({
+    mutationFn: ({ id, input }: { id?: string; input: CouponInput }) =>
+      id
+        ? apiSend(`/api/admin/coupons/${id}`, 'PUT', AdminCouponSchema, input)
+        : apiSend('/api/admin/coupons', 'POST', AdminCouponSchema, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useAdminLegal() {
+  return useQuery({
+    queryKey: [...ADMIN_KEY, 'legal'],
+    queryFn: () => apiFetch('/api/admin/legal', AdminLegalDocumentsResponseSchema),
+  });
+}
+
+export function usePublishLegal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: LegalDocumentInput) =>
+      apiSend('/api/admin/legal', 'POST', AdminLegalDocumentSchema, input),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ADMIN_KEY }),
+        queryClient.invalidateQueries({ queryKey: ['legal'] }),
+      ]),
   });
 }

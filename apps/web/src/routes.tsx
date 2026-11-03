@@ -1,10 +1,14 @@
 import type { RouteObject } from 'react-router';
 import { Layout } from './components/Layout';
+import { CartPage } from './pages/CartPage';
 import { CatalogPage } from './pages/CatalogPage';
+import { CheckoutPage } from './pages/CheckoutPage';
 import { CoursePage } from './pages/CoursePage';
 import { HomePage } from './pages/HomePage';
+import { LegalPage } from './pages/LegalPage';
 import { LoginPage } from './pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { OrderPage } from './pages/OrderPage';
 
 /**
  * El panel de administración se carga en chunks aparte (code splitting): el sitio público no
@@ -19,6 +23,10 @@ export const routes: RouteObject[] = [
       { path: 'cursos', element: <CatalogPage /> },
       { path: 'cursos/:slug', element: <CoursePage /> },
       { path: 'ingresar', element: <LoginPage /> },
+      { path: 'carrito', element: <CartPage /> },
+      { path: 'checkout', element: <CheckoutPage /> },
+      { path: 'ordenes/:number', element: <OrderPage /> },
+      { path: 'legal/:slug', element: <LegalPage /> },
       {
         path: 'admin',
         lazy: async () => {
@@ -66,6 +74,38 @@ export const routes: RouteObject[] = [
             lazy: async () => {
               const { InstructorsPage } = await import('./pages/admin/InstructorsPage');
               return { Component: InstructorsPage };
+            },
+          },
+          {
+            path: 'cupones',
+            lazy: async () => {
+              const [{ CouponsPage }, { RequirePermission }] = await Promise.all([
+                import('./pages/admin/CouponsPage'),
+                import('./pages/admin/AdminApp'),
+              ]);
+              return {
+                Component: () => (
+                  <RequirePermission permission="coupons:manage">
+                    <CouponsPage />
+                  </RequirePermission>
+                ),
+              };
+            },
+          },
+          {
+            path: 'legales',
+            lazy: async () => {
+              const [{ LegalAdminPage }, { RequirePermission }] = await Promise.all([
+                import('./pages/admin/LegalAdminPage'),
+                import('./pages/admin/AdminApp'),
+              ]);
+              return {
+                Component: () => (
+                  <RequirePermission permission="legal:manage">
+                    <LegalAdminPage />
+                  </RequirePermission>
+                ),
+              };
             },
           },
           {
