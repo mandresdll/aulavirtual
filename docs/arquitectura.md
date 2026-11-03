@@ -156,3 +156,67 @@ sequenceDiagram
 | SEO con nginx SSI                                                 | Una sola fuente del HTML (la SPA), sin prerender ni Node para servir páginas; degradación segura si la API falla.                                                                        |
 | Triggers de "sin borrado" en la BD                                | La regla no depende del código: también protege ante errores o consultas manuales. Incluye `TRUNCATE`.                                                                                   |
 | Datos de demostración solo en desarrollo y CI                     | El contenedor `migrate` los carga con `compose.yaml`; staging y producción no cargan datos de prueba.                                                                                    |
+
+## Identidad, sesiones y roles (Fase 2, RF-10)
+
+```mermaid
+sequenceDiagram
+  actor U as Usuario
+  participant W as SPA (nginx)
+  participant A as API
+  participant R as Redis
+  participant I as IdP institucional
+  participant S as API del SGA
+  U->>W: /admin (sin sesión)
+  W-->>U: /ingresar?returnTo=/admin
+  U->>A: GET /api/auth/login?returnTo=/admin
+  A->>R: login:{id} = state, nonce, PKCE, returnTo (10 min)
+  A-->>U: 302 al IdP + cookie __Host-login
+  U->>I: Autenticación institucional
+  I-->>U: 302 /api/auth/callback?code&state
+  U->>A: callback + cookie __Host-login
+  A->>R: GETDEL login:{id} (un solo uso)
+  A->>I: código + verificador PKCE → ID Token (firma, nonce)
+  A->>S: getUserRoles(sub)
+  A->>R: cache:sga:roles:v1:{sub} (TTL corto)
+  A->>A: upsert User (sub, correo, nombre) + auditoría auth.login
+  A->>R: session:{id nuevo} (cierre por inactividad)
+  A-->>U: 302 /admin + cookie __Host-sid (HttpOnly, Secure, SameSite=Lax)
+  U->>A: GET /api/auth/session → roles + token CSRF
+  U->>A: POST /api/admin/... + x-csrf-token
+```
+
+Una petición a una ruta protegida pasa por estos pasos, en orden:
+
+1. **Sesión**: se lee `session:{id}` de Redis y se renueva el cierre por inactividad. Si la
+   sesión pasó su duración máxima, se borra.
+2. **Acceso** (`config.access` de la ruta): sin sesión, 401.
+3. **CSRF**: en una mutación, el `Origin` debe ser el de la SPA y la cabecera `x-csrf-token`
+   debe coincidir con el token de la sesión.
+4. **Roles**: se leen de la caché o del SGA.
+5. **Permiso**: si el rol no lo tiene, 403.
+
+## Panel de administración y auditoría (Fase 2, RF-07 y RF-12)
+
+- Cada cambio del panel se guarda en una transacción junto con su entrada en `audit_logs`:
+  si la auditoría falla, el cambio no se aplica.
+- Después del cambio se invalida la caché pública del catálogo: las fichas afectadas (al
+  cambiar el slug, la anterior y la nueva), todas las páginas del listado (borrado por
+  prefijo con `SCAN`), los destacados, las áreas y el sitemap. El sitio muestra el cambio en
+  la siguiente petición. El navegador puede conservar una ficha ya vista hasta 15 s
+  (`Cache-Control: max-age=15`, Fase 1).
+- Los cursos se archivan, no se borran. Las ediciones solo se eliminan si son borradores
+  sin inscripciones, órdenes, reservas, lista de espera ni cupones; si no, se despublican.
+
+## Decisiones de la Fase 2
+
+| Decisión                                                        | Motivo                                                                                                                                                              |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sesión de servidor en Redis, no JWT en el navegador             | Se puede revocar al instante (cerrar sesión, bloquear usuario), la cookie no lleva datos personales y el tamaño no crece con los roles.                             |
+| Cookie `__Host-` + `SameSite=Lax` + token CSRF sincronizado     | `__Host-` impide que un subdominio la reemplace; `Lax` permite volver del IdP; el token y la revisión de `Origin` protegen las mutaciones (defensa en profundidad). |
+| Roles consultados al SGA con caché corta, no guardados en la BD | El SGA es la fuente de verdad (la ficha prohíbe bases paralelas); un cambio rige a lo más en `SGA_ROLES_CACHE_TTL_SECONDS`. Si el SGA cae, se niega el acceso.      |
+| `config.access` obligatorio en cada ruta `/api`                 | Una ruta nueva sin declarar su acceso impide que la API arranque: no hay endpoints abiertos por olvido. Una prueba recorre todas las rutas del panel con cada rol.  |
+| Permisos en `packages/shared`                                   | La misma tabla decide en la API (autoriza) y en la SPA (qué menú muestra). La SPA nunca es la barrera: la API valida cada llamada.                                  |
+| Auditoría en la misma transacción y con diff                    | No hay cambios sin rastro; el antes y después solo incluye los campos modificados, para que se lea fácil.                                                           |
+| Formularios del panel con los esquemas de la API                | Las mismas reglas (fechas, nota mínima, perfiles) validan en el navegador y en el servidor.                                                                         |
+| Texto plano en las descripciones (sin editor enriquecido)       | El editor con limpieza de HTML (RF-07) se agrega cuando se definan los textos legales; hoy evita superficie XSS.                                                    |

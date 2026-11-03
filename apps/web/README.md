@@ -3,6 +3,36 @@
 SPA React + TypeScript (Vite) con el sitio público, el área del comprador y el panel de
 administración (`/admin`, cargado en un chunk aparte).
 
+## Requisitos que cubre (Fase 2)
+
+- **RF-10 Identidad**:
+  - `/ingresar` (`pages/LoginPage.tsx`) lleva al IdP institucional y explica por qué falló un
+    intento (cancelado, expirado, servicio no disponible…).
+  - El encabezado muestra «Ingresar» o, con sesión, el nombre, el acceso al panel y
+    «Cerrar sesión».
+  - `lib/session.ts` lee `/api/auth/session`.
+  - `lib/api.ts` (`apiSend`) envía el token CSRF en cada mutación.
+- **RF-07 (parcial) Panel `/admin`**:
+  - Cada página se carga en un chunk aparte (`pages/admin/`).
+  - `AdminLayout` exige sesión: sin ella lleva a `/ingresar?returnTo=…`. A quien no tiene
+    permisos le muestra «Acceso no autorizado», y el menú solo muestra las secciones que
+    permite el rol.
+  - Cursos (listado con búsqueda y estado; formulario; publicar, despublicar y archivar).
+  - Ediciones: fechas en hora de Punta Arenas (`datetime-local`) que se envían en UTC; cupos;
+    precio CLP; tratamiento tributario; criterio de aprobación; inscripción liberada.
+    Publicar, duplicar y eliminar borradores.
+  - Áreas y docentes.
+  - Los formularios usan React Hook Form con los esquemas Zod de shared (mensajes en español
+    con `z.config(es())`).
+  - Las acciones destructivas se confirman con Radix AlertDialog.
+- **RF-12**: `/admin/auditoria` es de solo lectura, con filtros en la URL, el detalle «antes y
+  después» y el historial por usuario o registro. Solo la ve `uta_admin`.
+- **Accesibilidad**:
+  - Cada campo tiene etiqueta, ayuda y error asociados (`aria-describedby`, `aria-invalid`).
+  - Los resultados se anuncian con `role="status"` y `role="alert"`, y las tablas tienen
+    `caption`.
+  - axe sin infracciones en `/ingresar` y en las páginas del panel (E2E).
+
 ## Requisitos que cubre (Fase 1)
 
 - **RF-01 Catálogo público**: portada con destacados y áreas (`pages/HomePage.tsx`), listado

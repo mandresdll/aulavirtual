@@ -14,16 +14,16 @@ simulado** (regla 2 de [CLAUDE.md](../CLAUDE.md)). Código en `apps/api/src/inte
 
 ## Resumen
 
-| Puerto                 | Variable                       | Adaptadores              | Estado                                      | Pregunta abierta |
-| ---------------------- | ------------------------------ | ------------------------ | ------------------------------------------- | ---------------- |
-| `PaymentGateway`       | `PAYMENT_GATEWAY_DRIVER`       | `mock`, `webpay`         | Mock listo; Webpay en Fase 4                | Q1               |
-| `LmsGateway`           | `LMS_DRIVER`                   | `mock`, `moodle`         | Mock listo; Moodle en Fase 5                | Q4               |
-| `IdentityProvider`     | `IDENTITY_DRIVER`              | `mock`, `oidc`           | Mock listo; OIDC en Fase 2                  | Q2, Q3           |
-| `SgaGateway`           | `SGA_DRIVER`                   | `mock`, `http`           | Mock listo; HTTP en Fase 2                  | Q7               |
-| `CertificateValidator` | `CERTIFICATE_VALIDATOR_DRIVER` | `mock`, `sga`            | Mock listo; SGA en Fase 6                   | Q5               |
-| `InvoicingGateway`     | `INVOICING_DRIVER`             | `mock`, `export`, `http` | Mock listo; export/http en Fase 7           | Q6               |
-| `Mailer`               | `MAILER_DRIVER`                | `smtp`, `memory`         | **SMTP real listo** (Mailpit en desarrollo) | Q9               |
-| `AiAssistant`          | `AI_ASSISTANT_DRIVER`          | `disabled`               | Sin IA en esta entrega (EX-04)              | —                |
+| Puerto                 | Variable                       | Adaptadores              | Estado                                                     | Pregunta abierta |
+| ---------------------- | ------------------------------ | ------------------------ | ---------------------------------------------------------- | ---------------- |
+| `PaymentGateway`       | `PAYMENT_GATEWAY_DRIVER`       | `mock`, `webpay`         | Mock listo; Webpay en Fase 4                               | Q1               |
+| `LmsGateway`           | `LMS_DRIVER`                   | `mock`, `moodle`         | Mock listo; Moodle en Fase 5                               | Q4               |
+| `IdentityProvider`     | `IDENTITY_DRIVER`              | `mock`, `oidc`           | **OIDC real listo** (falta registrar el cliente en el IdP) | Q2, Q3           |
+| `SgaGateway`           | `SGA_DRIVER`                   | `mock`, `http`           | HTTP listo sobre un **contrato supuesto**                  | Q7               |
+| `CertificateValidator` | `CERTIFICATE_VALIDATOR_DRIVER` | `mock`, `sga`            | Mock listo; SGA en Fase 6                                  | Q5               |
+| `InvoicingGateway`     | `INVOICING_DRIVER`             | `mock`, `export`, `http` | Mock listo; export/http en Fase 7                          | Q6               |
+| `Mailer`               | `MAILER_DRIVER`                | `smtp`, `memory`         | **SMTP real listo** (Mailpit en desarrollo)                | Q9               |
+| `AiAssistant`          | `AI_ASSISTANT_DRIVER`          | `disabled`               | Sin IA en esta entrega (EX-04)                             | —                |
 
 ## Pasarela de pagos — `PaymentGateway`
 
@@ -55,27 +55,72 @@ simulado** (regla 2 de [CLAUDE.md](../CLAUDE.md)). Código en `apps/api/src/inte
 
 ## Proveedor de identidad — `IdentityProvider`
 
-- **Operaciones**: `createAuthorizationRequest` (state, nonce y PKCE), `completeAuthorization`
-  (valida state y devuelve los claims), `getLogoutUrl`.
-- **Supuesto (Q2)**: OIDC estándar con Authorization Code + PKCE (`openid-client`). Si el IdP
-  es SAML, se agrega otro adaptador con el mismo contrato.
-- **Variables**: `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`,
-  `OIDC_REDIRECT_URI`, `OIDC_SCOPES`.
-- **Q3, compradores externos**: la ficha pide cuentas para compradores externos, pero prohíbe
-  "bases de usuarios paralelas". Supuesto: los externos se crean o registran en el IdP/SGA vía
-  API, con un adaptador alternativo de cuentas locales mínimas desactivado por flag. Se diseña
-  en la Fase 2.
+- **Operaciones**:
+  - `createAuthorizationRequest`: genera `state`, `nonce` y el verificador PKCE.
+  - `completeAuthorization`: valida `state`, PKCE, `nonce` y la firma del ID Token, y
+    devuelve los claims.
+  - `getLogoutUrl`: arma el cierre de sesión en el IdP con `id_token_hint`.
+- **Adaptador real** (`identity/oidc.ts`, Fase 2):
+  - Usa `openid-client` v6 con Authorization Code + PKCE S256. El cliente se autentica en el
+    IdP con `client_secret_post`.
+  - Descubre la configuración del IdP en `/.well-known/openid-configuration` y la reutiliza.
+    Si el IdP no responde, el siguiente intento vuelve a descubrirla.
+  - Exige el claim `email`. Toma `name`, o lo arma con `given_name` + `family_name`.
+  - Probado contra un emisor OIDC falso, dentro de la prueba, que firma con RS256 y valida
+    PKCE, el secreto y `redirect_uri` (`oidc.test.ts`).
+- **Adaptador simulado**: página `/api/dev/mock-idp/authorize` con las identidades de
+  `mock-identities.ts`. Solo existe con `IDENTITY_DRIVER=mock`, y la configuración bloquea los
+  mocks en producción.
+- **Supuesto vigente (Q2)**: el IdP del SGA es OIDC estándar. Si resulta ser SAML, se agrega
+  otro adaptador con el mismo contrato: las sesiones, los roles y el panel no cambian.
+- **Variables**:
+  - `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_SCOPES`.
+  - `OIDC_REDIRECT_URI`, que debe ser `{PUBLIC_WEB_URL}/api/auth/callback`.
+- **Datos que se guardan** (Ley 21.719, minimización): `sub`, el correo y el nombre. El ID
+  Token queda solo en la sesión de Redis, para el cierre de sesión en el IdP.
+- **Por confirmar con la UTA (Q2)**:
+  - Qué IdP usan (Entra ID, Google, Keycloak…).
+  - Registrar el cliente y las URL de retorno y de cierre de sesión (staging y producción).
+  - Si el IdP entrega `email` verificado para todos los usuarios.
+  - Si el `sub` es estable o conviene cruzar por otro claim (p. ej. RUT o id del SGA).
+  - Si ofrece `end_session_endpoint`.
+- **Q3, compradores externos**: sigue abierto. El flujo de login no supone que el usuario
+  exista en el SGA: un usuario que el SGA no conoce entra sin roles (`getUserRoles` → `null`).
+  La creación de cuentas externas, vía el IdP/SGA o con cuentas locales tras un flag, se
+  resuelve en la fase del checkout.
 
 ## API del SGA — `SgaGateway`
 
-- **Operación**: `getUserRoles(subject)` → perfiles institucionales (`student`, `teacher`,
-  `staff`) y roles de la plataforma (`uta_admin`, `uta_editor`, `uta_finance`, `uta_reports`,
-  `buyer`, `community_member`).
-- **Supuesto (Q7)**: cliente HTTP con token de servicio; caché corta en Redis
-  (`SGA_ROLES_CACHE_TTL_SECONDS`).
-- **Variables**: `SGA_API_URL`, `SGA_API_TOKEN`.
-- **Por confirmar**: documentación de la API, autenticación servicio a servicio, cómo el SGA
-  expresa los roles y su correspondencia con los roles de la plataforma.
+- **Operación**: `getUserRoles(subject)` → `sgaUserId`, perfiles institucionales (`student`,
+  `teacher`, `staff`) y roles de la plataforma (`uta_admin`, `uta_editor`, `uta_finance`,
+  `uta_reports`, `buyer`, `community_member`).
+- **Contrato supuesto (Q7)**, implementado en `sga/http.ts`:
+
+  ```http
+  GET {SGA_API_URL}/users/{subject}/roles
+  Authorization: Bearer {SGA_API_TOKEN}
+
+  200 { "sgaUserId": "SGA-77", "profiles": ["staff"], "roles": ["uta_admin", "community_member"] }
+  404 → el SGA no conoce al usuario (entra sin roles)
+  ```
+
+- **Mapeo**: los perfiles y roles que la plataforma no conoce se descartan (deny by default):
+  un rol nuevo del SGA no da permisos hasta mapearlo de forma explícita.
+- **Errores**: una caída, un timeout de 5 s o un 5xx cuentan como error reintentable; una
+  respuesta mal formada, como error definitivo. En ambos casos el login no se completa y las
+  rutas protegidas responden 503: nunca se asumen permisos.
+- **Caché**: Redis `cache:sga:roles:v1:{subject}` por `SGA_ROLES_CACHE_TTL_SECONDS` (300 s
+  por defecto). Se refresca en cada inicio de sesión. Un rol quitado en el SGA deja de regir a
+  lo más al vencer la caché.
+- **Variables**: `SGA_API_URL`, `SGA_API_TOKEN`, `SGA_ROLES_CACHE_TTL_SECONDS`.
+- **Prueba de contrato**: `sga.contract.ts` corre contra el mock y contra un SGA falso por
+  HTTP. Debe correr contra el SGA real cuando exista su ambiente de pruebas.
+- **Por confirmar con la UTA (Q7)**:
+  - Documentación de la API y autenticación servicio a servicio (token, mTLS, OAuth client
+    credentials…).
+  - Con qué identificador se consulta (`sub` del IdP, RUT u otro).
+  - Cómo expresa el SGA los roles y su correspondencia con los de la plataforma. Si usa otros
+    nombres, se agrega una tabla de equivalencias en el adaptador.
 
 ## Validador de certificados — `CertificateValidator`
 
@@ -119,12 +164,12 @@ asistente institucional del SGA. Condiciones para cualquier adaptador futuro:
 | #   | Pregunta                                                  | Supuesto en uso                                                    |
 | --- | --------------------------------------------------------- | ------------------------------------------------------------------ |
 | Q1  | Pasarela contratada y credenciales de integración         | Webpay Plus, ambiente de integración                               |
-| Q2  | IdP del SGA y protocolo                                   | OIDC estándar                                                      |
+| Q2  | IdP del SGA y protocolo                                   | OIDC estándar, Authorization Code + PKCE (adaptador listo)         |
 | Q3  | Cuentas de compradores externos vs. "sin bases paralelas" | Registro vía API del SGA; cuentas locales tras un flag desactivado |
 | Q4  | Moodle: versión, token, funciones, criterio de aprobación | Moodle 4.x, `enrol_manual`, aprobación por finalización            |
 | Q5  | Validador de certificados del SGA                         | Verificación propia + publicación en el validador                  |
 | Q6  | Sistema de boletas/facturas, formato, IVA                 | Exportación CSV/XLSX; tratamiento tributario por edición           |
-| Q7  | API del SGA para roles                                    | HTTP con token de servicio; contrato propio como mock              |
+| Q7  | API del SGA para roles                                    | `GET /users/{subject}/roles` con token Bearer (contrato supuesto)  |
 | Q8  | Identidad gráfica                                         | Tokens provisorios en burdeo (`apps/web/src/styles.css`)           |
 | Q9  | Servidores, proxy, SMTP                                   | Linux + Docker Compose v2 + nginx                                  |
 | Q10 | Retracto y devoluciones                                   | 10 días (art. 3 bis Ley 19.496), textos editables                  |
