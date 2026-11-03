@@ -1,5 +1,7 @@
+export * from './api/catalog.js';
 export * from './api/errors.js';
 export * from './api/health.js';
+export * from './domain/catalog.js';
 export * from './domain/dates.js';
 export * from './domain/money.js';
 export * from './domain/roles.js';

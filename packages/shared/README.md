@@ -11,6 +11,10 @@ Esquemas Zod, tipos y utilidades de dominio que comparten la API y la SPA.
 - **Modelo de dominio (RUT)**: `isValidRut`, `normalizeRut`, `formatRut`, `RutSchema` (dígito
   verificador módulo 11, mensaje en español).
 - **RF-10**: `PLATFORM_ROLES` y `COMMUNITY_PROFILES`.
+- **RF-01 (catálogo)**: esquemas de la API pública (`CourseListQuerySchema`,
+  `CourseCardSchema`, `CourseDetailSchema`, `EditionSchema`, `AreaSchema`…), modalidades y
+  tratamiento tributario con sus etiquetas en español, `SlugSchema`, `availableSeats` y
+  `startOfLocalDay`/`nextIsoDate` para filtrar por días de Punta Arenas.
 - **API**: formato único de error (`ErrorResponseSchema`) y esquemas de salud.
 
 ```bash
