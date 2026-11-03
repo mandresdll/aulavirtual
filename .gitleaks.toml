@@ -1,0 +1,9 @@
+title = "Plataforma de Cursos UTA"
+
+[extend]
+useDefault = true
+
+# `.env.example` solo contiene valores de ejemplo para el entorno local (sin credenciales reales).
+[[allowlists]]
+description = "Valores de ejemplo documentados"
+paths = ['''^\.env\.example$''']
