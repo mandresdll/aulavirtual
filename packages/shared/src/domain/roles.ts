@@ -26,6 +26,8 @@ export type CommunityProfile = z.infer<typeof CommunityProfileSchema>;
 export const PERMISSIONS = {
   /** Panel de administración: cursos, ediciones, áreas y docentes (RF-07). */
   'catalog:manage': ['uta_admin', 'uta_editor'],
+  /** Leer cursos y ediciones del panel (p. ej. para definir el alcance de un cupón). */
+  'catalog:read': ['uta_admin', 'uta_editor', 'uta_finance'],
   /** Cupones de descuento, becas y convenios (RF-04). */
   'coupons:manage': ['uta_admin', 'uta_finance'],
   /** Textos legales versionados (RF-11). */

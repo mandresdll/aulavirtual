@@ -39,6 +39,7 @@ export interface AdminRoutesOptions {
 
 const MANAGE: { access: RouteAccess } = { access: { permission: 'catalog:manage' } };
 const AUDIT: { access: RouteAccess } = { access: { permission: 'audit:read' } };
+const READ_CATALOG: { access: RouteAccess } = { access: { permission: 'catalog:read' } };
 const COUPONS: { access: RouteAccess } = { access: { permission: 'coupons:manage' } };
 
 const errors = {
@@ -195,7 +196,7 @@ export const adminRoutes: FastifyPluginAsyncZod<AdminRoutesOptions> = async (app
   app.get(
     '/admin/courses',
     {
-      config: MANAGE,
+      config: READ_CATALOG,
       schema: {
         tags,
         summary: 'Cursos en todos los estados, con búsqueda y paginación',
@@ -209,7 +210,7 @@ export const adminRoutes: FastifyPluginAsyncZod<AdminRoutesOptions> = async (app
   app.get(
     '/admin/courses/:id',
     {
-      config: MANAGE,
+      config: READ_CATALOG,
       schema: {
         tags,
         summary: 'Curso con todas sus ediciones',

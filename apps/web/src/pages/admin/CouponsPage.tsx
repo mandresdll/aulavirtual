@@ -215,7 +215,7 @@ function CouponEditor({
   const scope = watch('scope');
   const type = watch('type');
   const courseId = watch('courseId');
-  const courses = useAdminCourses({ page: 1, pageSize: 100 });
+  const courses = useAdminCourses({ page: 1, pageSize: 100 }, scope !== 'all');
   const course = useAdminCourse(scope === 'edition' && courseId ? courseId : undefined);
 
   return (

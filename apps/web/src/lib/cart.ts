@@ -136,7 +136,11 @@ export function useMergeLocalCart() {
     void apiSend('/api/cart/merge', 'POST', CartResponseSchema, { editionIds: ids })
       .then(() => {
         writeLocal([]);
-        return queryClient.invalidateQueries({ queryKey: ['cart'] });
+        // La cotización del checkout pudo pedirse antes de la fusión: se vuelve a calcular.
+        return Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['cart'] }),
+          queryClient.invalidateQueries({ queryKey: ['checkout'] }),
+        ]);
       })
       .catch(() => {
         // Se reintenta en la próxima carga; el carrito local se conserva.

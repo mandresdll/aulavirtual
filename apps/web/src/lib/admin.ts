@@ -97,8 +97,9 @@ export function useDeleteInstructor() {
   });
 }
 
-export function useAdminCourses(query: AdminCourseListQuery) {
+export function useAdminCourses(query: AdminCourseListQuery, enabled = true) {
   return useQuery({
+    enabled,
     queryKey: [...ADMIN_KEY, 'courses', query],
     queryFn: () =>
       apiFetch(`/api/admin/courses?${toQueryString(query)}`, AdminCourseListResponseSchema),

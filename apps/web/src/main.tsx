@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider, createBrowserRouter } from 'react-router';
 import { z } from 'zod';
 import es from 'zod/v4/locales/es.js';
+import { ApiError } from './lib/api';
 import { routes } from './routes';
 import './styles.css';
 
@@ -11,7 +12,15 @@ import './styles.css';
 z.config(es());
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      refetchOnWindowFocus: false,
+      // Un 4xx (sin permiso, no existe, datos inválidos) no cambia al reintentar.
+      retry: (failures, error) =>
+        !(error instanceof ApiError && error.status >= 400 && error.status < 500) && failures < 3,
+    },
+  },
 });
 
 const router = createBrowserRouter(routes);
