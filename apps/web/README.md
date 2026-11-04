@@ -3,6 +3,30 @@
 SPA React + TypeScript (Vite) con el sitio público, el área del comprador y el panel de
 administración (`/admin`, cargado en un chunk aparte).
 
+## Requisitos que cubre (Fase 3)
+
+- **RF-03 Carrito y checkout**:
+  - «Agregar al carrito» en cada edición con inscripciones abiertas y cupos.
+  - Carrito sin sesión en `localStorage` (solo ids, `lib/cart.ts`), que se fusiona con la
+    cuenta al ingresar. Se ve en `/carrito`.
+  - `/checkout` (con sesión) muestra el total final con impuestos, el cupón, la elección de
+    boleta o factura (con validación de RUT) y los cuatro textos legales con casillas sin
+    marcar.
+  - Cada visita al checkout usa una clave de idempotencia nueva, así que un doble clic no
+    duplica la orden.
+  - `/ordenes/:numero` muestra la reserva y su vencimiento, o la inscripción confirmada si el
+    total fue $0.
+- **RF-11**:
+  - `/legal/:slug` muestra la versión vigente en Markdown, sin interpretar HTML
+    (`components/Markdown.tsx`, `markdown-it` con `html: false`).
+  - El pie del sitio enlaza los cuatro textos y muestra los datos del proveedor.
+- **Panel**:
+  - `/admin/cupones` (administración y finanzas).
+  - `/admin/legales`: nueva versión a partir de una existente, con vista previa y
+    confirmación porque una versión publicada no se modifica.
+  - El menú y las tarjetas del inicio del panel se filtran por permiso.
+- **Robustez**: las consultas no se reintentan ante errores 4xx (`main.tsx`).
+
 ## Requisitos que cubre (Fase 2)
 
 - **RF-10 Identidad**:

@@ -9,7 +9,7 @@ correo de acceso → certificado verificable → registro de la venta para bolet
 Se integra con el SGA (identidad, roles, validador de certificados); no reemplaza al Aula
 Virtual ni al módulo de aranceles del SGA.
 
-> Estado: **Fase 2 — Identidad y panel de administración**. Ver el plan por fases en
+> Estado: **Fase 3 — Carrito, cupones y checkout**. Ver el plan por fases en
 > [PROMPT_CLAUDE_CODE.md](PROMPT_CLAUDE_CODE.md) (sección 10) y el avance en
 > [docs/matriz-cumplimiento.md](docs/matriz-cumplimiento.md).
 
@@ -41,7 +41,11 @@ La carga es idempotente y nunca se ejecuta con `APP_ENV=production`.
 **Panel de administración**: http://localhost:8080/admin. En desarrollo el ingreso usa un
 proveedor de identidad simulado: elige un usuario de demostración. «Administración UTA» ve
 todo, incluida la auditoría; «Editora UTA» gestiona cursos, ediciones, áreas y docentes;
-«Estudiante de Prueba» no tiene acceso al panel.
+«Estudiante de Prueba» no tiene acceso al panel; «Finanzas UTA» gestiona cupones.
+
+**Compra de prueba**: agrega una edición al carrito desde la ficha de un curso y confirma en
+`/checkout`. El cupón `BIENVENIDA10` descuenta 10 %; `BECA-UTA-100` deja la inscripción en $0
+sin pasar por la pasarela (el pago en línea llega en la Fase 4).
 
 Todas las integraciones externas usan **adaptadores simulados** por defecto (`*_DRIVER=mock`):
 no se necesita pasarela, Moodle ni SGA para desarrollar. Ver

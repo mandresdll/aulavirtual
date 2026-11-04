@@ -84,10 +84,15 @@ simulado** (regla 2 de [CLAUDE.md](../CLAUDE.md)). Código en `apps/api/src/inte
   - Si el IdP entrega `email` verificado para todos los usuarios.
   - Si el `sub` es estable o conviene cruzar por otro claim (p. ej. RUT o id del SGA).
   - Si ofrece `end_session_endpoint`.
-- **Q3, compradores externos**: sigue abierto. El flujo de login no supone que el usuario
-  exista en el SGA: un usuario que el SGA no conoce entra sin roles (`getUserRoles` → `null`).
-  La creación de cuentas externas, vía el IdP/SGA o con cuentas locales tras un flag, se
-  resuelve en la fase del checkout.
+- **Q3, compradores externos (abierta, bloquea la venta a público general)**:
+  - El checkout (Fase 3) exige una sesión del IdP institucional. Un usuario que el SGA no
+    conoce puede ingresar (entra sin roles) y comprar, pero solo si el IdP le permite
+    autenticarse.
+  - Si el IdP del CFT no admite cuentas externas, falta un camino de registro. Se puede
+    hacer con un adaptador que las cree vía la API del SGA o con cuentas locales mínimas
+    activadas por flag. Ambos usarían el mismo puerto `IdentityProvider`, sin cambiar el
+    checkout.
+  - **Hay que definirlo con la UTA antes de vender a público externo.**
 
 ## API del SGA — `SgaGateway`
 
@@ -159,17 +164,32 @@ asistente institucional del SGA. Condiciones para cualquier adaptador futuro:
 2. Solo el asistente institucional del SGA, no servicios de IA de terceros directamente.
 3. Presupuesto de uso configurable y registro de cada llamada en auditoría.
 
+## Datos del proveedor (Ley 19.496)
+
+El pie del sitio y el checkout muestran los datos del CFT como proveedor. Vienen de las
+variables `SELLER_NAME`, `SELLER_RUT`, `SELLER_ADDRESS`, `SELLER_EMAIL` y `SELLER_PHONE`.
+Mientras no se configuren, se muestra «Por confirmar». **Hay que completarlas con los datos
+oficiales del CFT antes de producción.**
+
+## Textos legales (RF-11, Q10)
+
+- El seed de desarrollo carga borradores base (versión `2026.0-borrador`, marcados como
+  borrador en el propio texto) con el retracto de 10 días del supuesto de Q10.
+- Las versiones oficiales las publica el CFT desde `/admin/legales`.
+- Mientras falte alguno de los cuatro textos, la API rechaza el checkout
+  (`LEGAL_NOT_CONFIGURED`).
+
 ## Preguntas abiertas y supuestos vigentes
 
-| #   | Pregunta                                                  | Supuesto en uso                                                    |
-| --- | --------------------------------------------------------- | ------------------------------------------------------------------ |
-| Q1  | Pasarela contratada y credenciales de integración         | Webpay Plus, ambiente de integración                               |
-| Q2  | IdP del SGA y protocolo                                   | OIDC estándar, Authorization Code + PKCE (adaptador listo)         |
-| Q3  | Cuentas de compradores externos vs. "sin bases paralelas" | Registro vía API del SGA; cuentas locales tras un flag desactivado |
-| Q4  | Moodle: versión, token, funciones, criterio de aprobación | Moodle 4.x, `enrol_manual`, aprobación por finalización            |
-| Q5  | Validador de certificados del SGA                         | Verificación propia + publicación en el validador                  |
-| Q6  | Sistema de boletas/facturas, formato, IVA                 | Exportación CSV/XLSX; tratamiento tributario por edición           |
-| Q7  | API del SGA para roles                                    | `GET /users/{subject}/roles` con token Bearer (contrato supuesto)  |
-| Q8  | Identidad gráfica                                         | Tokens provisorios en burdeo (`apps/web/src/styles.css`)           |
-| Q9  | Servidores, proxy, SMTP                                   | Linux + Docker Compose v2 + nginx                                  |
-| Q10 | Retracto y devoluciones                                   | 10 días (art. 3 bis Ley 19.496), textos editables                  |
+| #   | Pregunta                                                  | Supuesto en uso                                                        |
+| --- | --------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Q1  | Pasarela contratada y credenciales de integración         | Webpay Plus, ambiente de integración                                   |
+| Q2  | IdP del SGA y protocolo                                   | OIDC estándar, Authorization Code + PKCE (adaptador listo)             |
+| Q3  | Cuentas de compradores externos vs. "sin bases paralelas" | Checkout con sesión del IdP; registro de externos pendiente de definir |
+| Q4  | Moodle: versión, token, funciones, criterio de aprobación | Moodle 4.x, `enrol_manual`, aprobación por finalización                |
+| Q5  | Validador de certificados del SGA                         | Verificación propia + publicación en el validador                      |
+| Q6  | Sistema de boletas/facturas, formato, IVA                 | Exportación CSV/XLSX; tratamiento tributario por edición               |
+| Q7  | API del SGA para roles                                    | `GET /users/{subject}/roles` con token Bearer (contrato supuesto)      |
+| Q8  | Identidad gráfica                                         | Tokens provisorios en burdeo (`apps/web/src/styles.css`)               |
+| Q9  | Servidores, proxy, SMTP                                   | Linux + Docker Compose v2 + nginx                                      |
+| Q10 | Retracto y devoluciones                                   | 10 días (art. 3 bis Ley 19.496); textos versionados en el panel        |
