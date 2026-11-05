@@ -20,7 +20,7 @@ simulado** (regla 2 de [CLAUDE.md](../CLAUDE.md)). Código en `apps/api/src/inte
 | `LmsGateway`           | `LMS_DRIVER`                   | `mock`, `moodle`         | **Moodle listo** (falta probar con un Moodle real, ver abajo) | Q4               |
 | `IdentityProvider`     | `IDENTITY_DRIVER`              | `mock`, `oidc`           | **OIDC real listo** (falta registrar el cliente en el IdP)    | Q2, Q3           |
 | `SgaGateway`           | `SGA_DRIVER`                   | `mock`, `http`           | HTTP listo sobre un **contrato supuesto**                     | Q7               |
-| `CertificateValidator` | `CERTIFICATE_VALIDATOR_DRIVER` | `mock`, `sga`            | Mock listo; SGA en Fase 6                                     | Q5               |
+| `CertificateValidator` | `CERTIFICATE_VALIDATOR_DRIVER` | `mock`, `sga`            | Mock listo; SGA con contrato supuesto                         | Q5               |
 | `InvoicingGateway`     | `INVOICING_DRIVER`             | `mock`, `export`, `http` | Mock listo; export/http en Fase 7                             | Q6               |
 | `Mailer`               | `MAILER_DRIVER`                | `smtp`, `memory`         | **SMTP real listo** (Mailpit en desarrollo)                   | Q9               |
 | `AiAssistant`          | `AI_ASSISTANT_DRIVER`          | `disabled`               | Sin IA en esta entrega (EX-04)                                | —                |
@@ -155,9 +155,17 @@ simulado** (regla 2 de [CLAUDE.md](../CLAUDE.md)). Código en `apps/api/src/inte
 - **Operaciones**: `register` (idempotente por código), `revoke`.
 - **Supuesto (Q5)**: la plataforma expone su propia verificación pública (`/verificar/:codigo`)
   y además publica cada certificado en el validador del SGA.
+- **Adaptador real** (`certificate-validator/sga.ts`, Fase 6), sobre un contrato **supuesto**:
+  - `POST {url}/certificates` con `code`, `holderName`, `courseTitle`, `hours`, `issuedAt` y
+    `verificationUrl`; responde `{ externalId }`. Un 409 se trata como ya publicado.
+  - `POST {url}/certificates/{code}/revoke` con `{ reason }`.
+  - Autenticación `Authorization: Bearer {token}`.
+  - Errores 5xx o de red se reintentan; los 4xx quedan como error definitivo en el panel.
+- **Si el SGA no responde**, el certificado sigue válido en `/verificar` y se reintenta cada minuto.
+- **Datos enviados**: nombre, curso, horas, fecha y código. Sin RUT, correo ni nota.
 - **Variables**: `CERTIFICATE_VALIDATOR_URL`, `CERTIFICATE_VALIDATOR_TOKEN`.
 - **Por confirmar**: si el validador recibe certificados o consulta a esta plataforma; los
-  campos que exige.
+  campos que exige; rutas, autenticación y códigos de respuesta reales.
 
 ## Boletas y facturas — `InvoicingGateway`
 

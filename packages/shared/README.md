@@ -20,6 +20,8 @@ Esquemas Zod, tipos y utilidades de dominio que comparten la API y la SPA.
   `CourseInputSchema`, `EditionInputSchema` con reglas de fechas, nota y perfiles) y de la
   auditoría (`AuditQuerySchema`, `AuditLogEntrySchema`). Los usan los formularios de la SPA y
   la validación de la API.
+- **RF-06** (`api/certificates.ts`): `VerificationSchema`, `MyCoursesSchema`, esquemas del panel
+  de certificados y permiso `certificates:manage`.
 - **RF-03 / RF-04 / RF-11** (`api/commerce.ts`):
   - Carrito (`CART_MAX_ITEMS`) y cupones (`CouponInputSchema` con reglas de alcance y
     vigencia).
