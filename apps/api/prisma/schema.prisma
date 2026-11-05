@@ -512,6 +512,10 @@ model Enrollment {
   lastLmsError    String?          @map("last_lms_error") @db.VarChar(1000)
   grade           Decimal?         @db.Decimal(5, 2)
   enrolledAt      DateTime?        @map("enrolled_at") @db.Timestamptz(3)
+  /// Cuándo se envió el correo de bienvenida; `null` lo deja pendiente para el worker.
+  welcomeSentAt   DateTime?        @map("welcome_sent_at") @db.Timestamptz(3)
+  /// Cuándo se desmatriculó en el Aula Virtual tras un retiro.
+  lmsUnenrolledAt DateTime?        @map("lms_unenrolled_at") @db.Timestamptz(3)
   completedAt     DateTime?        @map("completed_at") @db.Timestamptz(3)
   withdrawnAt     DateTime?        @map("withdrawn_at") @db.Timestamptz(3)
   createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)

@@ -17,6 +17,7 @@ export function edition(overrides: Partial<Edition> = {}): Edition {
     availableSeats: 12,
     enrollmentOpen: true,
     freeForCommunity: false,
+    communityProfiles: [],
     schedule: 'Martes de 19:00 a 20:30',
     location: null,
     ...overrides,

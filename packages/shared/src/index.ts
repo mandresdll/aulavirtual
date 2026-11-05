@@ -2,6 +2,7 @@ export * from './api/admin.js';
 export * from './api/auth.js';
 export * from './api/commerce.js';
 export * from './api/catalog.js';
+export * from './api/enrollment.js';
 export * from './api/errors.js';
 export * from './api/health.js';
 export * from './domain/catalog.js';

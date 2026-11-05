@@ -201,7 +201,14 @@ export function EditionsSection({ course }: { course: AdminCourseDetail }) {
               <tbody>
                 {course.editions.map((edition) => (
                   <tr key={edition.id} className="border-b border-gray-200 align-top">
-                    <td className="py-2 pr-4 font-medium">{edition.code}</td>
+                    <td className="py-2 pr-4 font-medium">
+                      {edition.code}
+                      {!edition.moodleCourseId && (
+                        <span className="block text-xs font-normal text-red-800">
+                          Sin curso del Aula Virtual: no se podrá matricular
+                        </span>
+                      )}
+                    </td>
                     <td className="py-2 pr-4">{formatDateTime(new Date(edition.startsAt))}</td>
                     <td className="py-2 pr-4">
                       {edition.freeForCommunity && edition.priceClp === 0

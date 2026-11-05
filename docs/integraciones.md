@@ -14,16 +14,16 @@ simulado** (regla 2 de [CLAUDE.md](../CLAUDE.md)). Código en `apps/api/src/inte
 
 ## Resumen
 
-| Puerto                 | Variable                       | Adaptadores              | Estado                                                     | Pregunta abierta |
-| ---------------------- | ------------------------------ | ------------------------ | ---------------------------------------------------------- | ---------------- |
-| `PaymentGateway`       | `PAYMENT_GATEWAY_DRIVER`       | `mock`, `webpay`         | **Webpay listo** (falta probar con Transbank, ver abajo)   | Q1               |
-| `LmsGateway`           | `LMS_DRIVER`                   | `mock`, `moodle`         | Mock listo; Moodle en Fase 5                               | Q4               |
-| `IdentityProvider`     | `IDENTITY_DRIVER`              | `mock`, `oidc`           | **OIDC real listo** (falta registrar el cliente en el IdP) | Q2, Q3           |
-| `SgaGateway`           | `SGA_DRIVER`                   | `mock`, `http`           | HTTP listo sobre un **contrato supuesto**                  | Q7               |
-| `CertificateValidator` | `CERTIFICATE_VALIDATOR_DRIVER` | `mock`, `sga`            | Mock listo; SGA en Fase 6                                  | Q5               |
-| `InvoicingGateway`     | `INVOICING_DRIVER`             | `mock`, `export`, `http` | Mock listo; export/http en Fase 7                          | Q6               |
-| `Mailer`               | `MAILER_DRIVER`                | `smtp`, `memory`         | **SMTP real listo** (Mailpit en desarrollo)                | Q9               |
-| `AiAssistant`          | `AI_ASSISTANT_DRIVER`          | `disabled`               | Sin IA en esta entrega (EX-04)                             | —                |
+| Puerto                 | Variable                       | Adaptadores              | Estado                                                        | Pregunta abierta |
+| ---------------------- | ------------------------------ | ------------------------ | ------------------------------------------------------------- | ---------------- |
+| `PaymentGateway`       | `PAYMENT_GATEWAY_DRIVER`       | `mock`, `webpay`         | **Webpay listo** (falta probar con Transbank, ver abajo)      | Q1               |
+| `LmsGateway`           | `LMS_DRIVER`                   | `mock`, `moodle`         | **Moodle listo** (falta probar con un Moodle real, ver abajo) | Q4               |
+| `IdentityProvider`     | `IDENTITY_DRIVER`              | `mock`, `oidc`           | **OIDC real listo** (falta registrar el cliente en el IdP)    | Q2, Q3           |
+| `SgaGateway`           | `SGA_DRIVER`                   | `mock`, `http`           | HTTP listo sobre un **contrato supuesto**                     | Q7               |
+| `CertificateValidator` | `CERTIFICATE_VALIDATOR_DRIVER` | `mock`, `sga`            | Mock listo; SGA en Fase 6                                     | Q5               |
+| `InvoicingGateway`     | `INVOICING_DRIVER`             | `mock`, `export`, `http` | Mock listo; export/http en Fase 7                             | Q6               |
+| `Mailer`               | `MAILER_DRIVER`                | `smtp`, `memory`         | **SMTP real listo** (Mailpit en desarrollo)                   | Q9               |
+| `AiAssistant`          | `AI_ASSISTANT_DRIVER`          | `disabled`               | Sin IA en esta entrega (EX-04)                                | —                |
 
 ## Pasarela de pagos — `PaymentGateway`
 
@@ -60,9 +60,21 @@ simulado** (regla 2 de [CLAUDE.md](../CLAUDE.md)). Código en `apps/api/src/inte
   `core_enrol_get_enrolled_users`, `core_completion_get_course_completion_status`,
   `gradereport_user_get_grade_items`.
 - **Variables**: `MOODLE_URL`, `MOODLE_TOKEN`, `MOODLE_STUDENT_ROLE_ID` (por defecto 5).
+- **Adaptador real** (`lms/moodle.ts`, Fase 5):
+  - Moodle responde 200 también en los errores: `{ exception, errorcode, message }` se trata
+    como definitivo. Un corte o un 5xx se reintenta.
+  - Un curso sin criterios de finalización (`nocriteriaset`) cuenta como no completado.
+  - **Verificado solo contra un Moodle falso** (`moodle.test.ts`, mismo contrato que el mock).
+    Falta correr `lms.contract.ts` contra un Moodle real con el token de servicio.
+- **Supuestos de la matrícula (Q4)**:
+  - Se busca al usuario por correo. Si no existe, se crea con el correo como `username`,
+    autenticación `manual`, y Moodle genera la contraseña y la envía.
+  - El `id` del curso de Moodle se configura en cada edición (`moodleCourseId`). Sin él, la
+    inscripción queda `failed` con un mensaje claro y el panel avisa en la edición.
 - **Por confirmar**: versión y URL, token de servicio, criterio de aprobación (finalización o
   nota mínima), formato de `username` para usuarios externos, si los usuarios de la comunidad CFT
-  ya existen en Moodle (y con qué campo se cruzan).
+  ya existen en Moodle (y con qué campo se cruzan), y si se deben crear con otro método de
+  autenticación (p. ej. el mismo SSO).
 
 ## Proveedor de identidad — `IdentityProvider`
 

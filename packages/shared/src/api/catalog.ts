@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { SlugSchema, ModalitySchema, TaxTreatmentSchema } from '../domain/catalog.js';
+import { CommunityProfileSchema } from '../domain/roles.js';
 import { ClpAmountSchema } from '../domain/money.js';
 
 /** Esquemas de la API pública del catálogo (RF-01). Fechas en ISO 8601 UTC. */
@@ -36,6 +37,8 @@ export const EditionSchema = z.object({
   /** Inscripciones abiertas ahora (dentro del plazo). Con 0 cupos, corresponde lista de espera. */
   enrollmentOpen: z.boolean(),
   freeForCommunity: z.boolean(),
+  /** Perfiles de la comunidad CFT que se inscriben sin pago (RF-04). */
+  communityProfiles: z.array(CommunityProfileSchema),
   schedule: z.string().nullable(),
   location: z.string().nullable(),
 });

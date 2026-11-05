@@ -28,6 +28,8 @@ Esquemas Zod, tipos y utilidades de dominio que comparten la API y la SPA.
   - Estados de orden con etiquetas en español.
 - **RF-03 Pago** (`api/commerce.ts`): `MAX_PAYMENT_ATTEMPTS`, estados de pago y devolución con
   etiquetas, `RefundRequestSchema`, `AdminOrderSchema` y el permiso `orders:refund`.
+- **RF-04 / RF-05** (`api/enrollment.ts`): estados y orígenes de inscripción con etiquetas,
+  `MyEnrollmentsSchema` y esquemas del panel. Permiso `enrollments:manage`.
 - **Fechas en formularios**: `toLocalDateTimeInput` y `fromLocalDateTimeInput` convierten
   entre hora de Punta Arenas y UTC.
 - **RF-01 (catálogo)**: esquemas de la API pública (`CourseListQuerySchema`,

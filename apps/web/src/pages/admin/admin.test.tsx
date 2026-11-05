@@ -11,6 +11,7 @@ import { AdminLayout, RequirePermission } from './AdminApp';
 import { AdminHomePage } from './AdminHomePage';
 import { AreasPage } from './AreasPage';
 import { AuditPage } from './AuditPage';
+import { EnrollmentsPage } from './EnrollmentsPage';
 import { LegalAdminPage } from './LegalAdminPage';
 import { OrdersPage } from './OrdersPage';
 import { mockServer } from '../../test-server';
@@ -33,6 +34,7 @@ const testRoutes: RouteObject[] = [
           { index: true, element: <AdminHomePage /> },
           { path: 'areas', element: <AreasPage /> },
           { path: 'ordenes', element: <OrdersPage /> },
+          { path: 'inscripciones', element: <EnrollmentsPage /> },
           { path: 'legales', element: <LegalAdminPage /> },
           {
             path: 'auditoria',
@@ -241,6 +243,38 @@ describe('legal texts page', () => {
       type: 'terms',
       version: '2026.1',
     });
+  });
+});
+
+describe('enrollments page', () => {
+  it('lists failed enrollments with their error and retries them', async () => {
+    const failed = {
+      id: '11111111-1111-4111-8111-111111111111',
+      status: 'failed',
+      source: 'purchase',
+      attempts: 5,
+      lastError: 'Moodle: curso inexistente',
+      user: { name: 'Ana Soto', email: 'ana@example.com' },
+      courseTitle: 'Excel',
+      editionCode: 'XLS-1',
+      createdAt: '2026-06-01T12:00:00.000Z',
+    };
+    const calls = mockServer({
+      'GET /api/auth/session': sessionAs(['uta_editor']),
+      'GET /api/admin/enrollments': ({ url }: { url: URL }) => ({
+        body: { items: url.searchParams.get('status') === 'failed' ? [failed] : [] },
+      }),
+      'GET /api/admin/waitlist': { items: [] },
+      [`POST /api/admin/enrollments/${failed.id}/retry`]: () => ({ status: 204 }),
+    });
+    renderAt('/admin/inscripciones');
+    expect(await screen.findByText(/Moodle: curso inexistente/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Reintentar matrícula de Ana Soto' }));
+    await vi.waitFor(() =>
+      expect(calls.find((call) => call.method === 'POST')?.headers.get('x-csrf-token')).toBe(
+        'csrf-123',
+      ),
+    );
   });
 });
 

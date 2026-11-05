@@ -3,12 +3,15 @@ import { Link } from 'react-router';
 import { ApiError } from '../lib/api';
 import { useCart, useCartActions } from '../lib/cart';
 
-/** Agregar una edición al carrito (RF-03). Solo si tiene inscripciones abiertas y cupos. */
-export function AddToCartButton({ edition }: { edition: Edition }) {
+/**
+ * Agregar una edición al carrito (RF-03): si tiene inscripciones abiertas y cupos, o si la lista
+ * de espera le retiene un cupo a esta persona (`held`).
+ */
+export function AddToCartButton({ edition, held = false }: { edition: Edition; held?: boolean }) {
   const cart = useCart();
   const { add } = useCartActions();
 
-  if (!edition.enrollmentOpen || edition.availableSeats === 0) return null;
+  if (!edition.enrollmentOpen || (edition.availableSeats === 0 && !held)) return null;
 
   const inCart = cart.data?.items.some((item) => item.editionId === edition.id) ?? false;
   if (inCart) {

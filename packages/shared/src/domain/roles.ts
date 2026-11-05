@@ -32,6 +32,8 @@ export const PERMISSIONS = {
   'coupons:manage': ['uta_admin', 'uta_finance'],
   /** Consultar órdenes y hacer devoluciones (RF-03). */
   'orders:refund': ['uta_admin', 'uta_finance'],
+  /** Ver inscripciones fallidas, reintentarlas y consultar listas de espera (RF-05). */
+  'enrollments:manage': ['uta_admin', 'uta_editor'],
   /** Textos legales versionados (RF-11). */
   'legal:manage': ['uta_admin'],
   /** Vista de auditoría de solo lectura (RF-12). */

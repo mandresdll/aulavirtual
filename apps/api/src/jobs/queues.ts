@@ -8,6 +8,7 @@ import type { Redis } from 'ioredis';
 export const QUEUE_NAMES = {
   system: 'system',
   checkout: 'checkout',
+  enrollment: 'enrollment',
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];

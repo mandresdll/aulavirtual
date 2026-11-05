@@ -16,6 +16,7 @@ import { AppError } from '../../lib/errors.js';
 import type { AuditEntry, AuditRecorder } from '../../plugins/audit.js';
 import type { AuditActor } from '../admin/support.js';
 import { catalogCacheKeys } from '../catalog/catalog.service.js';
+import { createEnrollment } from '../enrollment/enrollment-records.js';
 import { releaseOrderHold, transitionOrder, transitionPayment } from './state-machine.js';
 
 export interface PaymentsLogger {
@@ -284,14 +285,14 @@ export class PaymentsService {
           data: { status: 'consumed' },
         });
         // Matrícula en el Aula Virtual: la procesa la cola `enrollment` (Fase 5).
-        await tx.enrollment.createMany({
-          data: order.items.map((item) => ({
+        for (const item of order.items) {
+          await createEnrollment(tx, {
             userId: order.userId,
             editionId: item.editionId,
             orderItemId: item.id,
-            source: 'purchase' as const,
-          })),
-        });
+            source: 'purchase',
+          });
+        }
         await audit.record(
           {
             actorId: order.userId,

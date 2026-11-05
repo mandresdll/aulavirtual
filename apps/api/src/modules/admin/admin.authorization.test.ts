@@ -50,6 +50,9 @@ const EXPECTED: Record<string, Permission> = {
   'POST /api/admin/legal': 'legal:manage',
   'GET /api/admin/orders/{number}': 'orders:refund',
   'POST /api/admin/orders/{number}/refunds': 'orders:refund',
+  'GET /api/admin/enrollments': 'enrollments:manage',
+  'POST /api/admin/enrollments/{id}/retry': 'enrollments:manage',
+  'GET /api/admin/waitlist': 'enrollments:manage',
   'GET /api/admin/audit': 'audit:read',
 };
 

@@ -1,4 +1,4 @@
-import type { Modality, TaxTreatment } from '@plataforma/shared';
+import type { Modality, CommunityProfile, TaxTreatment } from '@plataforma/shared';
 
 /** Datos del catálogo tal como salen de la base (fechas como `Date`). */
 
@@ -13,6 +13,7 @@ export interface EditionRecord {
   taxTreatment: TaxTreatment;
   capacity: number;
   freeForCommunity: boolean;
+  communityProfiles: CommunityProfile[];
   schedule: string | null;
   location: string | null;
 }

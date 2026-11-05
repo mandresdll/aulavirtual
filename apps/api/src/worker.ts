@@ -9,11 +9,14 @@ import { createPrismaClient } from './infra/database.js';
 import { createQueueConnection } from './infra/redis.js';
 import { CheckoutService } from './modules/checkout/checkout.service.js';
 import { createIntegrations } from './integrations/index.js';
+import { EnrollmentService } from './modules/enrollment/enrollment.service.js';
+import { WaitlistService } from './modules/enrollment/waitlist.service.js';
 import { LegalService } from './modules/legal/legal.service.js';
 import { PaymentsService } from './modules/payments/payments.service.js';
 import { ReceiptsService } from './modules/payments/receipts.service.js';
 import { PrismaAuditRecorder } from './plugins/audit.js';
 import { createCheckoutProcessor } from './jobs/processors/checkout.js';
+import { createEnrollmentProcessor } from './jobs/processors/enrollment.js';
 import { createSystemProcessor } from './jobs/processors/system.js';
 import { QUEUE_NAMES, createQueue } from './jobs/queues.js';
 
@@ -72,6 +75,41 @@ async function main() {
     logger,
     webUrl,
   });
+  const enrollment = new EnrollmentService({
+    prisma,
+    lms: integrations.lms,
+    mailer: integrations.mailer,
+    audit,
+    cache: new NoCache(),
+    checkout,
+    logger,
+    webUrl,
+    ...(env.MOODLE_URL ? { lmsUrl: env.MOODLE_URL } : {}),
+    ...(env.UTA_ALERT_EMAIL ? { alertEmail: env.UTA_ALERT_EMAIL } : {}),
+  });
+  const waitlist = new WaitlistService({
+    prisma,
+    mailer: integrations.mailer,
+    audit,
+    checkout,
+    logger,
+    webUrl,
+    offerHours: env.WAITLIST_OFFER_HOURS,
+  });
+  const enrollmentQueue = createQueue(QUEUE_NAMES.enrollment, connection);
+  for (const name of [
+    'sweep-enrollments',
+    'send-welcomes',
+    'sync-withdrawals',
+    'advance-waitlists',
+  ]) {
+    await enrollmentQueue.upsertJobScheduler(
+      name,
+      { every: CHECKOUT_JOBS_EVERY_MS },
+      { name, opts: { attempts: 1 } },
+    );
+  }
+
   const checkoutQueue = createQueue(QUEUE_NAMES.checkout, connection);
   for (const name of ['expire-orders', 'recover-payments', 'send-receipts']) {
     await checkoutQueue.upsertJobScheduler(
@@ -83,6 +121,24 @@ async function main() {
 
   const workers = [
     new Worker(QUEUE_NAMES.system, createSystemProcessor(logger), { connection }),
+    new Worker(
+      QUEUE_NAMES.enrollment,
+      createEnrollmentProcessor(
+        {
+          pendingIds: () => enrollment.pendingIds(),
+          process: (id) => enrollment.process(id),
+          recordAttempt: (id, message) => enrollment.recordAttempt(id, message),
+          markFailed: (id, message) => enrollment.markFailed(id, message),
+          sendWelcomes: () => enrollment.sendWelcomes(),
+          syncWithdrawals: () => enrollment.syncWithdrawals(),
+          advanceWaitlists: () => waitlist.advance(),
+          sendWaitlistOffers: () => waitlist.sendOffers(),
+        },
+        enrollmentQueue,
+        logger,
+      ),
+      { connection },
+    ),
     new Worker(
       QUEUE_NAMES.checkout,
       createCheckoutProcessor(
@@ -106,7 +162,7 @@ async function main() {
 
   const shutdown = async () => {
     await Promise.all(workers.map((worker) => worker.close()));
-    await Promise.all([systemQueue.close(), checkoutQueue.close()]);
+    await Promise.all([systemQueue.close(), checkoutQueue.close(), enrollmentQueue.close()]);
     await prisma.$disconnect();
     connection.disconnect();
     process.exit(0);
