@@ -10,6 +10,7 @@ import {
   Field,
   inputClass,
   primaryButton,
+  ScrollRegion,
   secondaryButton,
   smallButton,
 } from '../../components/admin/ui';
@@ -55,7 +56,7 @@ export function AreasPage() {
         {areas.isPending && <LoadingMessage />}
         {areas.isError && <ErrorMessage error={areas.error} onRetry={() => void areas.refetch()} />}
         {areas.data && (
-          <div className="overflow-x-auto">
+          <ScrollRegion label="Tabla de áreas">
             <table className="w-full text-left text-sm">
               <caption className="sr-only">Áreas del catálogo</caption>
               <thead className="border-b border-gray-300">
@@ -119,7 +120,7 @@ export function AreasPage() {
             {areas.data.items.length === 0 && (
               <p className="py-4 text-ink-muted">Aún no hay áreas.</p>
             )}
-          </div>
+          </ScrollRegion>
         )}
       </div>
     </div>

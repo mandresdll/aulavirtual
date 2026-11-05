@@ -32,6 +32,8 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'campaign.create': 'Novedad creada',
   'campaign.send': 'Novedad enviada',
   'lead.unsubscribe': 'Baja de novedades',
+  'data_subject.export': 'Datos de un titular exportados',
+  'data_subject.anonymize': 'Titular anonimizado',
   'certificate.issue': 'Certificado emitido',
   'certificate.reissue': 'Certificado reemitido',
   'certificate.revoke': 'Certificado revocado',

@@ -3,6 +3,11 @@
 SPA React + TypeScript (Vite) con el sitio público, el área del comprador y el panel de
 administración (`/admin`, cargado en un chunk aparte).
 
+## Requisitos que cubre (Fase 8)
+
+- **SEG datos personales**: `/admin/privacidad` para solicitudes de acceso y supresión.
+- **RNF accesibilidad**: `ScrollRegion` en las tablas anchas del panel, que se mueven con el teclado.
+
 ## Requisitos que cubre (Fase 7)
 
 - **RF-02**: formulario de interés en la ficha (`LeadForm`), `/baja/:token` y UTM de la visita

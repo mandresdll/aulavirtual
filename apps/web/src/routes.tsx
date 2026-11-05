@@ -212,6 +212,22 @@ export const routes: RouteObject[] = [
             },
           },
           {
+            path: 'privacidad',
+            lazy: async () => {
+              const [{ PrivacyPage }, { RequirePermission }] = await Promise.all([
+                import('./pages/admin/PrivacyPage'),
+                import('./pages/admin/AdminApp'),
+              ]);
+              return {
+                Component: () => (
+                  <RequirePermission permission="privacy:manage">
+                    <PrivacyPage />
+                  </RequirePermission>
+                ),
+              };
+            },
+          },
+          {
             path: 'legales',
             lazy: async () => {
               const [{ LegalAdminPage }, { RequirePermission }] = await Promise.all([

@@ -5,7 +5,13 @@ import {
   formatDateTime,
 } from '@plataforma/shared';
 import { Link, useSearchParams } from 'react-router';
-import { inputClass, primaryButton, secondaryButton, StatusBadge } from '../../components/admin/ui';
+import {
+  inputClass,
+  primaryButton,
+  ScrollRegion,
+  secondaryButton,
+  StatusBadge,
+} from '../../components/admin/ui';
 import { Pagination } from '../../components/Pagination';
 import { ErrorMessage, LoadingMessage } from '../../components/QueryState';
 import { useAdminCourses } from '../../lib/admin';
@@ -88,7 +94,7 @@ export function CoursesPage() {
             <p role="status" className="mb-2 text-sm text-ink-muted">
               {courses.data.total === 1 ? '1 curso' : `${courses.data.total} cursos`}
             </p>
-            <div className="overflow-x-auto">
+            <ScrollRegion label="Tabla de cursos">
               <table className="w-full text-left text-sm">
                 <caption className="sr-only">Cursos</caption>
                 <thead className="border-b border-gray-300">
@@ -139,7 +145,7 @@ export function CoursesPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollRegion>
             {courses.data.items.length === 0 && (
               <p className="py-4 text-ink-muted">No hay cursos con esos filtros.</p>
             )}

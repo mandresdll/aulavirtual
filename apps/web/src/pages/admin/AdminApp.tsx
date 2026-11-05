@@ -17,6 +17,7 @@ const SECTIONS: { to: string; label: string; permission: Permission | null; end?
   { to: '/admin/conciliacion', label: 'Conciliación', permission: 'sales:manage' },
   { to: '/admin/reportes', label: 'Reportes', permission: 'reports:read' },
   { to: '/admin/difusion', label: 'Difusión', permission: 'diffusion:manage' },
+  { to: '/admin/privacidad', label: 'Datos personales', permission: 'privacy:manage' },
   { to: '/admin/legales', label: 'Textos legales', permission: 'legal:manage' },
   { to: '/admin/auditoria', label: 'Auditoría', permission: 'audit:read' },
 ];

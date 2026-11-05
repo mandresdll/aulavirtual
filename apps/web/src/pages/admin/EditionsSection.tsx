@@ -26,6 +26,7 @@ import {
   Field,
   inputClass,
   primaryButton,
+  ScrollRegion,
   secondaryButton,
   smallButton,
   StatusBadge,
@@ -185,7 +186,7 @@ export function EditionsSection({ course }: { course: AdminCourseDetail }) {
         {course.editions.length === 0 ? (
           <p className="text-ink-muted">Este curso aún no tiene ediciones.</p>
         ) : (
-          <div className="overflow-x-auto">
+          <ScrollRegion label="Tabla de ediciones">
             <table className="w-full text-left text-sm">
               <caption className="sr-only">Ediciones de {course.title}</caption>
               <thead className="border-b border-gray-300">
@@ -314,7 +315,7 @@ export function EditionsSection({ course }: { course: AdminCourseDetail }) {
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
         )}
       </div>
     </section>

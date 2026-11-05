@@ -1,6 +1,6 @@
 import { AuditQuerySchema, formatDateTime, type AuditLogEntry } from '@plataforma/shared';
 import { useSearchParams } from 'react-router';
-import { inputClass, secondaryButton, smallButton } from '../../components/admin/ui';
+import { inputClass, ScrollRegion, secondaryButton, smallButton } from '../../components/admin/ui';
 import { Pagination } from '../../components/Pagination';
 import { ErrorMessage, LoadingMessage } from '../../components/QueryState';
 import { useAuditLog } from '../../lib/admin';
@@ -136,7 +136,7 @@ export function AuditPage() {
             <p role="status" className="mb-2 text-sm text-ink-muted">
               {audit.data.total === 1 ? '1 registro' : `${audit.data.total} registros`}
             </p>
-            <div className="overflow-x-auto">
+            <ScrollRegion label="Tabla de auditoría">
               <table className="w-full text-left text-sm">
                 <caption className="sr-only">Registro de auditoría</caption>
                 <thead className="border-b border-gray-300">
@@ -164,7 +164,7 @@ export function AuditPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollRegion>
             {audit.data.items.length === 0 && (
               <p className="py-4 text-ink-muted">No hay registros con esos filtros.</p>
             )}

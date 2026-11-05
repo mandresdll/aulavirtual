@@ -22,6 +22,7 @@ import {
   Field,
   inputClass,
   primaryButton,
+  ScrollRegion,
   secondaryButton,
   smallButton,
   StatusBadge,
@@ -115,7 +116,7 @@ export function CouponsPage() {
           <ErrorMessage error={coupons.error} onRetry={() => void coupons.refetch()} />
         )}
         {coupons.data && (
-          <div className="overflow-x-auto">
+          <ScrollRegion label="Tabla de cupones">
             <table className="w-full text-left text-sm">
               <caption className="sr-only">Cupones</caption>
               <thead className="border-b border-gray-300">
@@ -188,7 +189,7 @@ export function CouponsPage() {
             {coupons.data.items.length === 0 && (
               <p className="py-4 text-ink-muted">Aún no hay cupones.</p>
             )}
-          </div>
+          </ScrollRegion>
         )}
       </div>
     </div>
