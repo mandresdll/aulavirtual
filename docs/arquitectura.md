@@ -390,3 +390,14 @@ flowchart LR
 | Devolución repartida entre cursos por su peso en la orden           | Una devolución es por orden; el reporte por curso necesita asignarla sin perder pesos.             |
 | XLSX escrito sobre `fflate`, sin `exceljs`                          | `exceljs` arrastra `buffers`, sin licencia declarada, y la tabla es simple.                        |
 | Textos de CSV protegidos contra fórmulas                            | Un nombre escrito por un comprador no debe ejecutarse al abrir el archivo.                         |
+
+## Decisiones de la Fase 8
+
+| Decisión                                           | Motivo                                                                               |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Rate limit por usuario con sesión, por IP sin ella | En la red del CFT muchas personas comparten IP y no deben agotar el límite entre sí. |
+| Anonimizar en vez de borrar al titular             | Las órdenes y pagos no se pueden borrar: se quita lo que identifica a la persona.    |
+| El certificado conserva el nombre al anonimizar    | Debe seguir verificable; la persona puede pedir la revocación.                       |
+| Solicitudes de titulares por POST                  | El correo no debe quedar en URL, que terminan en registros intermedios.              |
+| `restore.sh` solo escribe en una base nueva        | Evita pisar datos en plena emergencia; la base anterior se conserva hasta validar.   |
+| Prueba de carga manual o al cambiar, no en cada PR | Tarda varios minutos y su resultado depende de la máquina del CI.                    |
