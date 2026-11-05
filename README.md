@@ -9,7 +9,7 @@ correo de acceso → certificado verificable → registro de la venta para bolet
 Se integra con el SGA (identidad, roles, validador de certificados); no reemplaza al Aula
 Virtual ni al módulo de aranceles del SGA.
 
-> Estado: **Fase 3 — Carrito, cupones y checkout**. Ver el plan por fases en
+> Estado: **Fase 4 — Pagos**. Ver el plan por fases en
 > [PROMPT_CLAUDE_CODE.md](PROMPT_CLAUDE_CODE.md) (sección 10) y el avance en
 > [docs/matriz-cumplimiento.md](docs/matriz-cumplimiento.md).
 
@@ -45,7 +45,7 @@ todo, incluida la auditoría; «Editora UTA» gestiona cursos, ediciones, áreas
 
 **Compra de prueba**: agrega una edición al carrito desde la ficha de un curso y confirma en
 `/checkout`. El cupón `BIENVENIDA10` descuenta 10 %; `BECA-UTA-100` deja la inscripción en $0
-sin pasar por la pasarela (el pago en línea llega en la Fase 4).
+sin pasar por la pasarela. Al pagar, la pasarela simulada permite aprobar, rechazar o anular.
 
 Todas las integraciones externas usan **adaptadores simulados** por defecto (`*_DRIVER=mock`):
 no se necesita pasarela, Moodle ni SGA para desarrollar. Ver

@@ -2,6 +2,19 @@
 
 API REST (Fastify + Zod + Prisma) y worker de trabajos asíncronos (BullMQ).
 
+## Requisitos que cubre (Fase 4)
+
+- **RF-03 Pago** (`src/modules/payments/`):
+  - `PaymentsService`: inicio del pago, retorno de la pasarela, confirmación en el servidor y
+    recuperación de confirmaciones interrumpidas.
+  - `state-machine.ts`: transiciones permitidas de órdenes y pagos.
+  - `ReceiptsService`: comprobante PDF (`pdf-lib`) y correo con reintentos.
+  - `RefundsService`: devoluciones totales y parciales por la pasarela, idempotentes.
+  - Adaptador Webpay Plus (`integrations/payment-gateway/webpay.ts`). Con
+    `PAYMENT_GATEWAY_DRIVER=mock`, `/api/dev/mock-payment` permite aprobar, rechazar o anular.
+- **Worker** (cola `checkout`, cada minuto): `expire-orders`, `recover-payments` y
+  `send-receipts`.
+
 ## Requisitos que cubre (Fase 3)
 
 - **RF-03 Compra en línea (sin el pago)** (`src/modules/checkout/`):
@@ -137,20 +150,25 @@ Autenticación (acceso público salvo el cierre de sesión):
 
 Carrito, checkout y textos legales:
 
-| Método   | Ruta                                | Acceso                                        |
-| -------- | ----------------------------------- | --------------------------------------------- |
-| GET      | `/api/cart/preview?editionIds=`     | Público (carrito del navegador)               |
-| GET      | `/api/cart`                         | Sesión                                        |
-| POST     | `/api/cart/items`                   | Sesión + CSRF                                 |
-| DELETE   | `/api/cart/items/{editionId}`       | Sesión + CSRF                                 |
-| POST     | `/api/cart/merge`                   | Sesión + CSRF                                 |
-| POST     | `/api/checkout/quote`               | Sesión + CSRF (rate limit)                    |
-| POST     | `/api/checkout/orders`              | Sesión + CSRF + `Idempotency-Key`             |
-| GET      | `/api/orders/{number}`              | Sesión (solo el dueño)                        |
-| GET      | `/api/legal`, `/api/legal/provider` | Público                                       |
-| GET/POST | `/api/admin/legal`                  | `legal:manage` (`uta_admin`)                  |
-| GET/POST | `/api/admin/coupons`                | `coupons:manage` (`uta_admin`, `uta_finance`) |
-| PUT      | `/api/admin/coupons/{id}`           | `coupons:manage`                              |
+| Método   | Ruta                                 | Acceso                                        |
+| -------- | ------------------------------------ | --------------------------------------------- |
+| GET      | `/api/cart/preview?editionIds=`      | Público (carrito del navegador)               |
+| GET      | `/api/cart`                          | Sesión                                        |
+| POST     | `/api/cart/items`                    | Sesión + CSRF                                 |
+| DELETE   | `/api/cart/items/{editionId}`        | Sesión + CSRF                                 |
+| POST     | `/api/cart/merge`                    | Sesión + CSRF                                 |
+| POST     | `/api/checkout/quote`                | Sesión + CSRF (rate limit)                    |
+| POST     | `/api/checkout/orders`               | Sesión + CSRF + `Idempotency-Key`             |
+| GET      | `/api/orders/{number}`               | Sesión (solo el dueño)                        |
+| GET      | `/api/legal`, `/api/legal/provider`  | Público                                       |
+| GET/POST | `/api/admin/legal`                   | `legal:manage` (`uta_admin`)                  |
+| GET/POST | `/api/admin/coupons`                 | `coupons:manage` (`uta_admin`, `uta_finance`) |
+| PUT      | `/api/admin/coupons/{id}`            | `coupons:manage`                              |
+| POST     | `/api/orders/{number}/pay`           | Sesión + CSRF (rate limit)                    |
+| GET/POST | `/api/payments/return`               | Público (solo trae un token)                  |
+| GET      | `/api/orders/{number}/receipt`       | Sesión (solo el dueño, orden pagada)          |
+| GET      | `/api/admin/orders/{number}`         | `orders:refund` (`uta_admin`, `uta_finance`)  |
+| POST     | `/api/admin/orders/{number}/refunds` | `orders:refund` + `Idempotency-Key`           |
 
 Panel de administración. Todas las rutas exigen sesión y permiso, y las mutaciones además el
 token CSRF. `catalog:manage` corresponde a `uta_admin` y `uta_editor`; `audit:read`, solo a

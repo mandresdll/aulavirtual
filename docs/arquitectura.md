@@ -57,7 +57,7 @@ adaptador se elige con una variable `*_DRIVER` validada al arranque. Los módulo
 solo conocen el puerto: cambiar de pasarela o confirmar el contrato del SGA no toca la lógica
 de negocio. Detalle en [integraciones.md](integraciones.md).
 
-## Flujo principal (objetivo, se construye en las fases 3 a 6)
+## Flujo principal (objetivo; las fases 3 y 4 ya lo cubren hasta la orden pagada)
 
 ```mermaid
 sequenceDiagram
@@ -83,7 +83,7 @@ sequenceDiagram
   Q->>C: Certificado PDF con QR
 ```
 
-## Máquinas de estado (definidas en la especificación, se implementan en las fases 3 a 6)
+## Máquinas de estado (órdenes y pagos en `modules/payments/state-machine.ts`)
 
 ```mermaid
 stateDiagram-v2
@@ -259,3 +259,45 @@ El pago con la pasarela empieza desde la orden `awaiting_payment` (Fase 4).
 | Textos legales inmutables (trigger) y hash de la aceptación               | La orden prueba qué versión exacta aceptó el comprador; cambiar un texto exige publicar una versión nueva.                                                                     |
 | Markdown sin HTML para los textos                                         | Formato suficiente para textos legales sin superficie XSS (sanitización exigida por RF-07).                                                                                    |
 | Carrito anónimo solo con ids en `localStorage`                            | Sin datos personales en el navegador ni cuentas para mirar precios; se fusiona al ingresar.                                                                                    |
+
+## Pagos (Fase 4, RF-03)
+
+```mermaid
+sequenceDiagram
+  actor C as Comprador
+  participant W as SPA
+  participant A as API
+  participant G as Pasarela
+  participant Q as Worker
+  C->>W: Pagar en /ordenes/:numero
+  W->>A: POST /api/orders/:numero/pay
+  A->>G: createTransaction (buyOrder UTA-AAAA-NNNNNN-intento)
+  A-->>W: URL y token
+  C->>G: Paga (la tarjeta nunca pasa por la plataforma)
+  G-->>A: Retorno con token_ws
+  A->>A: created → confirming (condicional; orden vigente)
+  A->>G: commit(token)
+  A->>A: Verifica monto y orden; pago authorized, orden paid, inscripciones pending_lms
+  A-->>C: 303 /ordenes/:numero?pago=aprobado
+  Q->>C: Correo con el comprobante PDF
+```
+
+| Situación                                                 | Qué hace la plataforma                                                                                                                   |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Doble retorno del navegador                               | Solo el primero pasa a `confirming` y llama a `commit`; el otro muestra el resultado ya guardado.                                        |
+| Rechazado o abandonado                                    | La orden sigue `awaiting_payment` mientras dure la reserva, hasta 3 intentos fallidos; después pasa a `failed` y libera cupos y cupón.   |
+| Retorno con la orden vencida                              | No se llama a `commit`: en Webpay eso significa que no hay cobro.                                                                        |
+| Vencimiento durante la confirmación                       | El worker no anula órdenes con un pago `confirming`, y la reserva se extiende 5 minutos al iniciar la confirmación.                      |
+| Monto u orden distintos, u orden que ya no se puede pagar | Reversa inmediata por la pasarela, pago `failed`, auditoría y alerta a `UTA_ALERT_EMAIL`.                                                |
+| Corte de red durante `commit`                             | Se consulta `getStatus`; si tampoco responde, el pago queda `confirming` y el worker lo retoma. La página de la orden se actualiza sola. |
+| Falla del correo                                          | El pago sigue válido: `orders.receipt_sent_at` queda vacío y el worker reintenta en la siguiente pasada.                                 |
+
+## Decisiones de la Fase 4
+
+| Decisión                                                               | Motivo                                                                                                                                           |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Estado `confirming` tomado con una actualización condicional           | Una sola operación decide quién confirma: resuelve el doble retorno y el cruce con el vencimiento sin bloquear filas durante una llamada de red. |
+| Correo por barrido del worker, no por evento                           | La API no depende de la cola para confirmar un pago, y un correo nunca se pierde si Redis o SMTP fallan en ese momento.                          |
+| `failed` no cuenta como intento del comprador                          | Un error de la pasarela o un intento reemplazado no es culpa de quien paga; solo cuentan `rejected` y `aborted`.                                 |
+| Devolución entre dos transacciones, con la orden en `refund_requested` | No se retiene un bloqueo durante la llamada a la pasarela, y el estado impide una segunda devolución simultánea.                                 |
+| Solo la devolución total retira la inscripción                         | Una devolución parcial es un ajuste de precio; quitar el acceso es una decisión aparte.                                                          |
