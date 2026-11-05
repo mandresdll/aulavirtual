@@ -2,6 +2,32 @@
 
 API REST (Fastify + Zod + Prisma) y worker de trabajos asíncronos (BullMQ).
 
+## Requisitos que cubre (Fase 3)
+
+- **RF-03 Compra en línea (sin el pago)** (`src/modules/checkout/`):
+  - Carrito en la BD para usuarios con sesión. El de visitantes vive en su navegador y se
+    describe con `/cart/preview`.
+  - Cotización con cupón y confirmación de la compra (orden `awaiting_payment`).
+  - Precios congelados en CLP enteros, número `UTA-AAAA-NNNNNN` (secuencia), historial de
+    estados y documento tributario (boleta, o factura con RUT validado).
+  - Idempotencia con la cabecera `Idempotency-Key`.
+- **Control de cupos transaccional**:
+  - Al confirmar se bloquean las filas de las ediciones (`FOR UPDATE`) y se cuentan las
+    inscripciones y reservas vigentes.
+  - Las reservas duran `SEAT_RESERVATION_TTL_MINUTES`. El worker (cola `checkout`) anula cada
+    minuto las órdenes vencidas y devuelve los cupos y el uso del cupón.
+- **RF-04 Cupones** (`checkout/pricing.ts`, `admin/coupons.service.ts`):
+  - Tipos porcentaje y monto fijo, con alcance, vigencia y límites totales y por usuario.
+  - Un cupón del 100 % genera una orden pagada de $0 con inscripciones `pending_lms`, que la
+    matrícula de la Fase 5 lleva al Aula Virtual.
+  - Los cupones los administran `uta_admin` y `uta_finance`.
+- **RF-11 Información al consumidor** (`src/modules/legal/`):
+  - Textos legales versionados e inmutables (trigger).
+  - Versión vigente por tipo según su fecha de vigencia.
+  - Datos del proveedor (`SELLER_*`).
+  - El checkout exige la versión vigente de los cuatro textos y guarda versiones, hash, IP y
+    fecha en la orden.
+
 ## Requisitos que cubre (Fase 2)
 
 - **RF-10 Identidad y roles** (`src/modules/auth/`):
@@ -109,23 +135,42 @@ Autenticación (acceso público salvo el cierre de sesión):
 | POST   | `/api/auth/logout`            | Cierra la sesión (CSRF); devuelve la URL de cierre en el IdP si existe  |
 | GET    | `/api/dev/mock-idp/authorize` | Solo con `IDENTITY_DRIVER=mock`: elegir usuario de demostración         |
 
+Carrito, checkout y textos legales:
+
+| Método   | Ruta                                | Acceso                                        |
+| -------- | ----------------------------------- | --------------------------------------------- |
+| GET      | `/api/cart/preview?editionIds=`     | Público (carrito del navegador)               |
+| GET      | `/api/cart`                         | Sesión                                        |
+| POST     | `/api/cart/items`                   | Sesión + CSRF                                 |
+| DELETE   | `/api/cart/items/{editionId}`       | Sesión + CSRF                                 |
+| POST     | `/api/cart/merge`                   | Sesión + CSRF                                 |
+| POST     | `/api/checkout/quote`               | Sesión + CSRF (rate limit)                    |
+| POST     | `/api/checkout/orders`              | Sesión + CSRF + `Idempotency-Key`             |
+| GET      | `/api/orders/{number}`              | Sesión (solo el dueño)                        |
+| GET      | `/api/legal`, `/api/legal/provider` | Público                                       |
+| GET/POST | `/api/admin/legal`                  | `legal:manage` (`uta_admin`)                  |
+| GET/POST | `/api/admin/coupons`                | `coupons:manage` (`uta_admin`, `uta_finance`) |
+| PUT      | `/api/admin/coupons/{id}`           | `coupons:manage`                              |
+
 Panel de administración. Todas las rutas exigen sesión y permiso, y las mutaciones además el
 token CSRF. `catalog:manage` corresponde a `uta_admin` y `uta_editor`; `audit:read`, solo a
 `uta_admin`.
 
-| Método     | Ruta                                                                             | Permiso          |
-| ---------- | -------------------------------------------------------------------------------- | ---------------- |
-| GET/POST   | `/api/admin/areas`                                                               | `catalog:manage` |
-| PUT/DELETE | `/api/admin/areas/{id}`                                                          | `catalog:manage` |
-| GET/POST   | `/api/admin/instructors`                                                         | `catalog:manage` |
-| PUT/DELETE | `/api/admin/instructors/{id}`                                                    | `catalog:manage` |
-| GET/POST   | `/api/admin/courses` (`q`, `status`, `page`)                                     | `catalog:manage` |
-| GET/PUT    | `/api/admin/courses/{id}`                                                        | `catalog:manage` |
-| POST       | `/api/admin/courses/{id}/publish·unpublish·archive`                              | `catalog:manage` |
-| POST       | `/api/admin/courses/{id}/editions`                                               | `catalog:manage` |
-| PUT/DELETE | `/api/admin/editions/{id}`                                                       | `catalog:manage` |
-| POST       | `/api/admin/editions/{id}/publish·unpublish·duplicate`                           | `catalog:manage` |
-| GET        | `/api/admin/audit` (`from`, `to`, `actorId`, `action`, `entityType`, `entityId`) | `audit:read`     |
+| Método     | Ruta                                                                             | Permiso                                |
+| ---------- | -------------------------------------------------------------------------------- | -------------------------------------- |
+| GET/POST   | `/api/admin/areas`                                                               | `catalog:manage`                       |
+| PUT/DELETE | `/api/admin/areas/{id}`                                                          | `catalog:manage`                       |
+| GET/POST   | `/api/admin/instructors`                                                         | `catalog:manage`                       |
+| PUT/DELETE | `/api/admin/instructors/{id}`                                                    | `catalog:manage`                       |
+| GET        | `/api/admin/courses` (`q`, `status`, `page`)                                     | `catalog:read` (también `uta_finance`) |
+| POST       | `/api/admin/courses`                                                             | `catalog:manage`                       |
+| GET        | `/api/admin/courses/{id}`                                                        | `catalog:read`                         |
+| PUT        | `/api/admin/courses/{id}`                                                        | `catalog:manage`                       |
+| POST       | `/api/admin/courses/{id}/publish·unpublish·archive`                              | `catalog:manage`                       |
+| POST       | `/api/admin/courses/{id}/editions`                                               | `catalog:manage`                       |
+| PUT/DELETE | `/api/admin/editions/{id}`                                                       | `catalog:manage`                       |
+| POST       | `/api/admin/editions/{id}/publish·unpublish·duplicate`                           | `catalog:manage`                       |
+| GET        | `/api/admin/audit` (`from`, `to`, `actorId`, `action`, `entityType`, `entityId`) | `audit:read`                           |
 
 ## Comandos
 

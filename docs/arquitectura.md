@@ -220,3 +220,42 @@ Una petición a una ruta protegida pasa por estos pasos, en orden:
 | Auditoría en la misma transacción y con diff                    | No hay cambios sin rastro; el antes y después solo incluye los campos modificados, para que se lea fácil.                                                           |
 | Formularios del panel con los esquemas de la API                | Las mismas reglas (fechas, nota mínima, perfiles) validan en el navegador y en el servidor.                                                                         |
 | Texto plano en las descripciones (sin editor enriquecido)       | El editor con limpieza de HTML (RF-07) se agrega cuando se definan los textos legales; hoy evita superficie XSS.                                                    |
+
+## Carrito y checkout (Fase 3, RF-03, RF-04 y RF-11)
+
+```mermaid
+sequenceDiagram
+  actor C as Comprador
+  participant W as SPA
+  participant A as API
+  participant D as PostgreSQL
+  C->>W: Agrega ediciones (sin sesión: ids en el navegador)
+  C->>W: Ingresa (SSO)
+  W->>A: POST /api/cart/merge (fusiona el carrito del navegador)
+  W->>A: POST /api/checkout/quote (cupón, textos legales vigentes)
+  C->>W: Acepta los 4 textos (casillas sin marcar) y confirma
+  W->>A: POST /api/checkout/orders + Idempotency-Key
+  A->>D: BEGIN; SELECT … FROM course_editions … FOR UPDATE
+  A->>D: cupos = capacidad − inscripciones − reservas vigentes
+  A->>D: orden (precios congelados, aceptación legal, número UTA-AAAA-NNNNNN)
+  A->>D: reservas (TTL) · uso del cupón · documento tributario · auditoría
+  A->>D: COMMIT
+  A-->>W: 201 orden awaiting_payment (o paid si el total es $0)
+  Note over A: El worker anula cada minuto las órdenes cuyo plazo venció
+```
+
+El pago con la pasarela empieza desde la orden `awaiting_payment` (Fase 4).
+
+## Decisiones de la Fase 3
+
+| Decisión                                                                  | Motivo                                                                                                                                                                         |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Reserva al confirmar la compra, no al abrir el checkout                   | El cupo se retiene en el momento que importa (mientras se paga en la pasarela), y visitar el checkout no bloquea cupos de otras personas.                                      |
+| `SELECT … FOR UPDATE` sobre las ediciones, en orden de id                 | Dos compras del último cupo se serializan sin aislamiento `SERIALIZABLE` (sin reintentos por conflicto); el orden fijo evita bloqueos mutuos con carritos de varias ediciones. |
+| Las reservas vencidas no cuentan aunque el job no haya pasado             | La disponibilidad no depende del worker: el job solo deja consistente el estado de la orden, el cupón y la reserva.                                                            |
+| Idempotencia con columna única `orders.idempotency_key`                   | Un doble clic o un reintento tras un corte devuelve la misma orden; dos confirmaciones simultáneas con la misma clave chocan en la BD y la segunda devuelve la primera.        |
+| Precios y descuentos congelados en `order_items`                          | El total de una orden no cambia si después se edita el precio de la edición o el cupón.                                                                                        |
+| Monto fijo una vez por orden; porcentaje por ítem, redondeado hacia abajo | Pesos enteros (regla 8); el descuento nunca supera lo declarado ni deja un ítem bajo $0.                                                                                       |
+| Textos legales inmutables (trigger) y hash de la aceptación               | La orden prueba qué versión exacta aceptó el comprador; cambiar un texto exige publicar una versión nueva.                                                                     |
+| Markdown sin HTML para los textos                                         | Formato suficiente para textos legales sin superficie XSS (sanitización exigida por RF-07).                                                                                    |
+| Carrito anónimo solo con ids en `localStorage`                            | Sin datos personales en el navegador ni cuentas para mirar precios; se fusiona al ingresar.                                                                                    |

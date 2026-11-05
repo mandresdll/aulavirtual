@@ -30,9 +30,9 @@ const EXPECTED: Record<string, Permission> = {
   'POST /api/admin/instructors': 'catalog:manage',
   'PUT /api/admin/instructors/{id}': 'catalog:manage',
   'DELETE /api/admin/instructors/{id}': 'catalog:manage',
-  'GET /api/admin/courses': 'catalog:manage',
+  'GET /api/admin/courses': 'catalog:read',
   'POST /api/admin/courses': 'catalog:manage',
-  'GET /api/admin/courses/{id}': 'catalog:manage',
+  'GET /api/admin/courses/{id}': 'catalog:read',
   'PUT /api/admin/courses/{id}': 'catalog:manage',
   'POST /api/admin/courses/{id}/publish': 'catalog:manage',
   'POST /api/admin/courses/{id}/unpublish': 'catalog:manage',
@@ -43,6 +43,11 @@ const EXPECTED: Record<string, Permission> = {
   'POST /api/admin/editions/{id}/unpublish': 'catalog:manage',
   'POST /api/admin/editions/{id}/duplicate': 'catalog:manage',
   'DELETE /api/admin/editions/{id}': 'catalog:manage',
+  'GET /api/admin/coupons': 'coupons:manage',
+  'POST /api/admin/coupons': 'coupons:manage',
+  'PUT /api/admin/coupons/{id}': 'coupons:manage',
+  'GET /api/admin/legal': 'legal:manage',
+  'POST /api/admin/legal': 'legal:manage',
   'GET /api/admin/audit': 'audit:read',
 };
 

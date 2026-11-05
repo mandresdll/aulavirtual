@@ -13,6 +13,14 @@ describe('platform permissions (deny by default)', () => {
     expect(hasPermission(['uta_editor'], 'audit:read')).toBe(false);
   });
 
+  it('lets finance manage coupons but not the catalog or legal texts', () => {
+    expect(hasPermission(['uta_finance'], 'coupons:manage')).toBe(true);
+    expect(hasPermission(['uta_editor'], 'coupons:manage')).toBe(false);
+    expect(hasPermission(['uta_finance'], 'legal:manage')).toBe(false);
+    expect(hasPermission(['uta_admin'], 'legal:manage')).toBe(true);
+    expect(canAccessAdmin(['uta_finance'])).toBe(true);
+  });
+
   it('denies everything without roles', () => {
     expect(hasPermission([], 'catalog:manage')).toBe(false);
     expect(canAccessAdmin([])).toBe(false);

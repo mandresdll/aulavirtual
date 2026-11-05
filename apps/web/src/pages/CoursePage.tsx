@@ -8,6 +8,7 @@ import {
 } from '@plataforma/shared';
 import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
+import { AddToCartButton } from '../components/AddToCartButton';
 import { SeatsBadge } from '../components/EditionStatus';
 import { ErrorMessage, LoadingMessage } from '../components/QueryState';
 import { ApiError } from '../lib/api';
@@ -85,6 +86,7 @@ function EditionCard({ edition }: { edition: Edition }) {
           Liberado para estudiantes, docentes y funcionarios del CFT.
         </p>
       )}
+      <AddToCartButton edition={edition} />
     </li>
   );
 }

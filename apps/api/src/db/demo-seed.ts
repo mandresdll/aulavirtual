@@ -1,5 +1,8 @@
+import { createHash } from 'node:crypto';
+import { LEGAL_DOCUMENT_TYPES } from '@plataforma/shared';
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { MOCK_IDENTITIES } from '../integrations/mock-identities.js';
+import { LEGAL_DRAFTS } from './legal-drafts.js';
 
 /**
  * Datos de demostración (sección 9 de la especificación): 2 áreas, 4 cursos, ediciones con y
@@ -23,6 +26,9 @@ export const DEMO_EXTERNAL_BUYER = {
 } as const;
 
 export const DEMO_COUPON_CODE = 'BIENVENIDA10';
+/** Cupón del 100 % (beca): genera órdenes con total $0 sin pasar por la pasarela. */
+export const DEMO_FULL_COUPON_CODE = 'BECA-UTA-100';
+export const DEMO_LEGAL_VERSION = '2026.0-borrador';
 
 interface DemoEdition {
   code: string;
@@ -259,6 +265,10 @@ export interface DemoSeedSummary {
   users: number;
 }
 
+/** Slugs de los datos de demostración (las pruebas cuentan solo estos). */
+export const DEMO_AREA_SLUGS = AREAS.map((area) => area.slug);
+export const DEMO_COURSE_SLUGS = COURSES.map((course) => course.slug);
+
 export async function seedDemoData(
   prisma: PrismaClient,
   now: Date = new Date(),
@@ -405,6 +415,38 @@ export async function seedDemoData(
       create: { code: DEMO_COUPON_CODE, ...couponData },
       update: couponData,
     });
+
+    await tx.coupon.upsert({
+      where: { code: DEMO_FULL_COUPON_CODE },
+      create: {
+        code: DEMO_FULL_COUPON_CODE,
+        ...couponData,
+        value: 100,
+        maxUses: null,
+        reason: 'scholarship',
+      },
+      update: {},
+    });
+
+    // Textos legales base (inmutables: solo se crean si no existen).
+    for (const type of LEGAL_DOCUMENT_TYPES) {
+      const draft = LEGAL_DRAFTS[type];
+      const exists = await tx.legalDocument.count({
+        where: { type, version: DEMO_LEGAL_VERSION },
+      });
+      if (exists === 0) {
+        await tx.legalDocument.create({
+          data: {
+            type,
+            version: DEMO_LEGAL_VERSION,
+            title: draft.title,
+            content: draft.content,
+            contentSha256: createHash('sha256').update(draft.content, 'utf8').digest('hex'),
+            effectiveFrom: at(now, -30),
+          },
+        });
+      }
+    }
 
     return {
       areas: AREAS.length,

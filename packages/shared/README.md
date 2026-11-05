@@ -20,6 +20,12 @@ Esquemas Zod, tipos y utilidades de dominio que comparten la API y la SPA.
   `CourseInputSchema`, `EditionInputSchema` con reglas de fechas, nota y perfiles) y de la
   auditoría (`AuditQuerySchema`, `AuditLogEntrySchema`). Los usan los formularios de la SPA y
   la validación de la API.
+- **RF-03 / RF-04 / RF-11** (`api/commerce.ts`):
+  - Carrito (`CART_MAX_ITEMS`) y cupones (`CouponInputSchema` con reglas de alcance y
+    vigencia).
+  - Textos legales con sus etiquetas y rutas públicas.
+  - Checkout: `CreateOrderSchema`, datos de factura con `RutSchema`, `IDEMPOTENCY_HEADER`.
+  - Estados de orden con etiquetas en español.
 - **Fechas en formularios**: `toLocalDateTimeInput` y `fromLocalDateTimeInput` convierten
   entre hora de Punta Arenas y UTC.
 - **RF-01 (catálogo)**: esquemas de la API pública (`CourseListQuerySchema`,

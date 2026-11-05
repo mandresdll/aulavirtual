@@ -21,3 +21,20 @@ globalThis.Request = class extends NodeRequest {
     super(input, rest);
   }
 } as typeof Request;
+
+// Node 22+ define un `localStorage` global propio que en jsdom puede quedar sin implementar.
+// Se usa un almacenamiento en memoria equivalente.
+if (typeof window.localStorage?.getItem !== 'function') {
+  const store = new Map<string, string>();
+  const memoryStorage: Storage = {
+    get length() {
+      return store.size;
+    },
+    clear: () => store.clear(),
+    getItem: (key) => store.get(key) ?? null,
+    key: (index) => [...store.keys()][index] ?? null,
+    removeItem: (key) => void store.delete(key),
+    setItem: (key, value) => void store.set(key, String(value)),
+  };
+  Object.defineProperty(window, 'localStorage', { value: memoryStorage, configurable: true });
+}

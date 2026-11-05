@@ -16,6 +16,9 @@ const ALLOWED = new Set([
   'MIT-0',
   'MPL-2.0',
   'PostgreSQL',
+  // Licencia permisiva de la Python Software Foundation (OSI), sin pagos; la usa `argparse`,
+  // dependencia de `markdown-it`. Equivalente a Python-2.0.
+  'PSF-2.0',
   'Python-2.0',
   'Unlicense',
 ]);

@@ -85,7 +85,10 @@ export function Feedback({ error, success }: { error?: unknown; success?: string
 }
 
 interface ConfirmProps {
-  trigger: ReactNode;
+  /** Botón que abre el diálogo; sin él, se controla con `open`/`onOpenChange`. */
+  trigger?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   title: string;
   description: string;
   confirmLabel: string;

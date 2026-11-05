@@ -1,4 +1,7 @@
 import {
+  AdminCouponSchema,
+  AdminCouponsResponseSchema,
+  CouponInputSchema,
   AdminAreaSchema,
   AdminAreasResponseSchema,
   AdminCourseDetailSchema,
@@ -23,6 +26,7 @@ import { auditActor } from '../../plugins/audit.js';
 import type { RouteAccess } from '../auth/access.plugin.js';
 import type { AdminAreasService, AdminInstructorsService } from './areas.service.js';
 import type { AuditLogService } from './audit-log.service.js';
+import type { AdminCouponsService } from './coupons.service.js';
 import type { AdminCoursesService } from './courses.service.js';
 
 export interface AdminRoutesOptions {
@@ -30,10 +34,13 @@ export interface AdminRoutesOptions {
   instructors: AdminInstructorsService;
   courses: AdminCoursesService;
   auditLog: AuditLogService;
+  coupons: AdminCouponsService;
 }
 
 const MANAGE: { access: RouteAccess } = { access: { permission: 'catalog:manage' } };
 const AUDIT: { access: RouteAccess } = { access: { permission: 'audit:read' } };
+const READ_CATALOG: { access: RouteAccess } = { access: { permission: 'catalog:read' } };
+const COUPONS: { access: RouteAccess } = { access: { permission: 'coupons:manage' } };
 
 const errors = {
   400: ErrorResponseSchema,
@@ -50,7 +57,7 @@ const tags = ['admin'];
  * Todas las rutas exigen sesión y permiso; las mutaciones, además, el token CSRF.
  */
 export const adminRoutes: FastifyPluginAsyncZod<AdminRoutesOptions> = async (app, options) => {
-  const { areas, instructors, courses, auditLog } = options;
+  const { areas, instructors, courses, auditLog, coupons } = options;
 
   app.addHook('onSend', async (_request, reply) => {
     reply.header('cache-control', 'no-store');
@@ -189,7 +196,7 @@ export const adminRoutes: FastifyPluginAsyncZod<AdminRoutesOptions> = async (app
   app.get(
     '/admin/courses',
     {
-      config: MANAGE,
+      config: READ_CATALOG,
       schema: {
         tags,
         summary: 'Cursos en todos los estados, con búsqueda y paginación',
@@ -203,7 +210,7 @@ export const adminRoutes: FastifyPluginAsyncZod<AdminRoutesOptions> = async (app
   app.get(
     '/admin/courses/:id',
     {
-      config: MANAGE,
+      config: READ_CATALOG,
       schema: {
         tags,
         summary: 'Curso con todas sus ediciones',
@@ -355,6 +362,53 @@ export const adminRoutes: FastifyPluginAsyncZod<AdminRoutesOptions> = async (app
       await courses.deleteEdition(request.params.id, auditActor(request));
       return reply.status(204).send(null);
     },
+  );
+
+  // --- Cupones (RF-04) ---------------------------------------------------------------------
+
+  app.get(
+    '/admin/coupons',
+    {
+      config: COUPONS,
+      schema: {
+        tags,
+        summary: 'Cupones con sus usos',
+        response: { 200: AdminCouponsResponseSchema, ...errors },
+      },
+    },
+    async () => ({ items: await coupons.list() }),
+  );
+
+  app.post(
+    '/admin/coupons',
+    {
+      config: COUPONS,
+      schema: {
+        tags,
+        summary: 'Crea un cupón',
+        body: CouponInputSchema,
+        response: { 201: AdminCouponSchema, ...errors },
+      },
+    },
+    async (request, reply) => {
+      reply.status(201);
+      return coupons.create(request.body, auditActor(request));
+    },
+  );
+
+  app.put(
+    '/admin/coupons/:id',
+    {
+      config: COUPONS,
+      schema: {
+        tags,
+        summary: 'Modifica o desactiva un cupón (no se eliminan)',
+        params: IdParamsSchema,
+        body: CouponInputSchema,
+        response: { 200: AdminCouponSchema, ...errors },
+      },
+    },
+    async (request) => coupons.update(request.params.id, request.body, auditActor(request)),
   );
 
   // --- Auditoría (solo lectura) ------------------------------------------------------------

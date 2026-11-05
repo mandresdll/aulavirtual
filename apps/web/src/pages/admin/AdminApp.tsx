@@ -4,11 +4,13 @@ import { ErrorMessage, LoadingMessage } from '../../components/QueryState';
 import { useSession } from '../../lib/session';
 import { useDocumentTitle } from '../../lib/use-document-title';
 
-const SECTIONS: { to: string; label: string; permission: Permission; end?: boolean }[] = [
-  { to: '/admin', label: 'Inicio', permission: 'catalog:manage', end: true },
+const SECTIONS: { to: string; label: string; permission: Permission | null; end?: boolean }[] = [
+  { to: '/admin', label: 'Inicio', permission: null, end: true },
   { to: '/admin/cursos', label: 'Cursos', permission: 'catalog:manage' },
   { to: '/admin/areas', label: 'Áreas', permission: 'catalog:manage' },
   { to: '/admin/docentes', label: 'Docentes', permission: 'catalog:manage' },
+  { to: '/admin/cupones', label: 'Cupones', permission: 'coupons:manage' },
+  { to: '/admin/legales', label: 'Textos legales', permission: 'legal:manage' },
   { to: '/admin/auditoria', label: 'Auditoría', permission: 'audit:read' },
 ];
 
@@ -53,7 +55,9 @@ export function AdminLayout() {
     );
   }
 
-  const sections = SECTIONS.filter((section) => hasPermission(roles, section.permission));
+  const sections = SECTIONS.filter(
+    (section) => section.permission === null || hasPermission(roles, section.permission),
+  );
   return (
     <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 md:grid-cols-[12rem_1fr]">
       <nav aria-label="Secciones del panel">
