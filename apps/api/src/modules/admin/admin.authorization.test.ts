@@ -48,10 +48,13 @@ const EXPECTED: Record<string, Permission> = {
   'PUT /api/admin/coupons/{id}': 'coupons:manage',
   'GET /api/admin/legal': 'legal:manage',
   'POST /api/admin/legal': 'legal:manage',
+  'GET /api/admin/orders/{number}': 'orders:refund',
+  'POST /api/admin/orders/{number}/refunds': 'orders:refund',
   'GET /api/admin/audit': 'audit:read',
 };
 
 const SAMPLE_ID = '00000000-0000-4000-8000-000000000000';
+const SAMPLE_ORDER = 'UTA-2026-000001';
 const WEB_URL = 'https://cursos.example.cl';
 
 let app: FastifyInstance;
@@ -79,7 +82,7 @@ beforeAll(async () => {
     .flatMap(([path, operations]) =>
       Object.keys(operations).map((method) => ({
         method: method.toUpperCase() as HTTPMethods,
-        path: path.replace('{id}', SAMPLE_ID),
+        path: path.replace('{id}', SAMPLE_ID).replace('{number}', SAMPLE_ORDER),
         key: `${method.toUpperCase()} ${path}`,
       })),
     );

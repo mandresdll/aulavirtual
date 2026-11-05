@@ -4,6 +4,7 @@ export interface MailMessage {
   html: string;
   text: string;
   replyTo?: string;
+  attachments?: { filename: string; content: Buffer; contentType: string }[];
 }
 
 export interface Mailer {

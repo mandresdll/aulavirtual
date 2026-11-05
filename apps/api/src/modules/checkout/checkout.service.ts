@@ -1,5 +1,6 @@
 import {
   CART_MAX_ITEMS,
+  MAX_PAYMENT_ATTEMPTS,
   type CartItem,
   type CartResponse,
   type CreateOrder,
@@ -14,6 +15,7 @@ import type { AuditRecorder } from '../../plugins/audit.js';
 import type { AuditActor } from '../admin/support.js';
 import { catalogCacheKeys, isEnrollmentOpen } from '../catalog/catalog.service.js';
 import { acceptanceHash, type LegalService } from '../legal/legal.service.js';
+import { releaseOrderHold, transitionOrder, transitionPayment } from '../payments/state-machine.js';
 import {
   appliesTo,
   checkCoupon,
@@ -549,9 +551,14 @@ export class CheckoutService {
       include: {
         items: { include: { edition: { select: { code: true } } } },
         coupon: { select: { code: true } },
+        payments: { orderBy: { createdAt: 'desc' } },
       },
     });
     if (!order || order.userId !== userId) throw AppError.notFound('La orden no existe.');
+    const latest = order.payments[0];
+    const failedAttempts = order.payments.filter((payment) =>
+      ['rejected', 'aborted'].includes(payment.status),
+    ).length;
     return {
       number: order.number,
       status: order.status,
@@ -571,6 +578,17 @@ export class CheckoutService {
       documentType: order.documentType,
       expiresAt: order.expiresAt?.toISOString() ?? null,
       createdAt: order.createdAt.toISOString(),
+      payment: latest
+        ? {
+            status: latest.status,
+            authorizationCode: latest.authorizationCode,
+            cardLast4: latest.cardLast4,
+            paymentType: latest.paymentType,
+            installments: latest.installments,
+            confirmedAt: latest.confirmedAt?.toISOString() ?? null,
+          }
+        : null,
+      paymentAttemptsLeft: Math.max(0, MAX_PAYMENT_ATTEMPTS - failedAttempts),
     };
   }
 
@@ -585,36 +603,32 @@ export class CheckoutService {
     const { prisma } = this.options;
     const now = this.now();
     const stale = await prisma.order.findMany({
-      where: { status: 'awaiting_payment', expiresAt: { lte: now } },
+      // Un pago en confirmación decide por sí mismo el destino de la orden.
+      where: {
+        status: 'awaiting_payment',
+        expiresAt: { lte: now },
+        payments: { none: { status: 'confirming' } },
+      },
       select: { id: true },
       take: 200,
     });
     let expired = 0;
     for (const { id } of stale) {
       const changed = await prisma.$transaction(async (tx) => {
-        const updated = await tx.order.updateMany({
-          where: { id, status: 'awaiting_payment', expiresAt: { lte: now } },
-          data: { status: 'cancelled' },
+        const order = await tx.order.findUniqueOrThrow({
+          where: { id },
+          select: { status: true, payments: { select: { id: true, status: true } } },
         });
-        if (updated.count === 0) return false;
-        await tx.orderStatusChange.create({
-          data: {
-            orderId: id,
-            fromStatus: 'awaiting_payment',
-            toStatus: 'cancelled',
-            reason: 'Plazo de pago vencido',
-          },
-        });
-        await tx.seatReservation.updateMany({
-          where: { orderId: id, status: 'active' },
-          data: { status: 'expired' },
-        });
-        const redemption = await tx.couponRedemption.findUnique({ where: { orderId: id } });
-        if (redemption) {
-          await tx.coupon.update({
-            where: { id: redemption.couponId },
-            data: { usesCount: { decrement: 1 } },
-          });
+        if (
+          order.status !== 'awaiting_payment' ||
+          order.payments.some((payment) => payment.status === 'confirming')
+        ) {
+          return false;
+        }
+        await transitionOrder(tx, id, 'awaiting_payment', 'cancelled', 'Plazo de pago vencido');
+        await releaseOrderHold(tx, id, 'expired');
+        for (const payment of order.payments.filter((item) => item.status === 'created')) {
+          await transitionPayment(tx, payment.id, 'created', 'aborted');
         }
         await this.options.audit.record(
           {
