@@ -9,7 +9,7 @@ correo de acceso → certificado verificable → registro de la venta para bolet
 Se integra con el SGA (identidad, roles, validador de certificados); no reemplaza al Aula
 Virtual ni al módulo de aranceles del SGA.
 
-> Estado: **Fase 6 — Certificados**. Ver el plan por fases en
+> Estado: **Fase 7 — Ventas, documentos, reportes y difusión**. Ver el plan por fases en
 > [PROMPT_CLAUDE_CODE.md](PROMPT_CLAUDE_CODE.md) (sección 10) y el avance en
 > [docs/matriz-cumplimiento.md](docs/matriz-cumplimiento.md).
 

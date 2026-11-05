@@ -8,7 +8,7 @@ import { CommunityProfileSchema } from '../domain/roles.js';
  * Fechas en ISO 8601 UTC; la SPA convierte desde y hacia la hora de Punta Arenas.
  */
 
-const IdSchema = z.uuid('Identificador inválido');
+export const IdSchema = z.uuid('Identificador inválido');
 const blankToUndefined = (value: unknown) =>
   typeof value === 'string' && value.trim() === '' ? undefined : value;
 const text = (max: number) =>
@@ -35,7 +35,7 @@ export const PaginationQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
 
-const paginated = <T extends z.ZodType>(item: T) =>
+export const paginated = <T extends z.ZodType>(item: T) =>
   z.object({
     items: z.array(item),
     page: z.number().int().positive(),

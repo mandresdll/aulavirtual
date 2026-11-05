@@ -10,6 +10,8 @@ export const QUEUE_NAMES = {
   checkout: 'checkout',
   enrollment: 'enrollment',
   certificates: 'certificates',
+  sales: 'sales',
+  diffusion: 'diffusion',
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];

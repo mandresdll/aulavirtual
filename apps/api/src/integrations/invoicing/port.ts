@@ -44,6 +44,8 @@ export interface SalesDocumentResult {
 
 export interface InvoicingGateway {
   readonly provider: string;
+  /** `true` si los documentos salen en el archivo contable y el folio se registra a mano. */
+  readonly deliversByFile: boolean;
   submit(document: SalesDocumentInput): Promise<SalesDocumentResult>;
   getStatus(externalId: string): Promise<SalesDocumentResult>;
 }

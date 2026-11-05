@@ -177,6 +177,11 @@ enum DeliveryStatus {
   failed
 }
 
+enum DiscrepancyKind {
+  status_mismatch
+  amount_mismatch
+}
+
 enum LegalDocumentType {
   terms
   privacy
@@ -202,13 +207,14 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  cart              Cart?
-  orders            Order[]
-  enrollments       Enrollment[]
-  seatReservations  SeatReservation[]
-  waitlistEntries   WaitlistEntry[]
-  couponRedemptions CouponRedemption[]
-  refundsRequested  Refund[]
+  cart                  Cart?
+  orders                Order[]
+  enrollments           Enrollment[]
+  seatReservations      SeatReservation[]
+  waitlistEntries       WaitlistEntry[]
+  couponRedemptions     CouponRedemption[]
+  refundsRequested      Refund[]
+  discrepanciesResolved PaymentDiscrepancy[]
 
   @@map("users")
 }
@@ -275,6 +281,7 @@ model Course {
   editions    CourseEdition[]
   coupons     Coupon[]
   leads       Lead[]
+  pageViews   CoursePageView[]
 
   @@index([search], map: "courses_search_idx", type: Gin)
   @@index([status, featured])
@@ -466,8 +473,9 @@ model Payment {
   createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  order   Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
-  refunds Refund[]
+  order         Order                @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  refunds       Refund[]
+  discrepancies PaymentDiscrepancy[]
 
   @@index([orderId])
   @@index([status, createdAt])
@@ -661,6 +669,8 @@ model SalesDocument {
   receiverActivity String?             @map("receiver_activity") @db.VarChar(200)
   receiverAddress  String?             @map("receiver_address") @db.VarChar(300)
   status           SalesDocumentStatus @default(pending)
+  /// Identificador en el sistema de emisión, cuando lo informa (Q6).
+  externalId       String?             @map("external_id") @db.VarChar(100)
   externalFolio    String?             @map("external_folio") @db.VarChar(50)
   exportedAt       DateTime?           @map("exported_at") @db.Timestamptz(3)
   lastError        String?             @map("last_error") @db.VarChar(1000)
@@ -673,9 +683,61 @@ model SalesDocument {
   @@map("sales_documents")
 }
 
+/// Resultado de la conciliación de un día calendario en Punta Arenas (RF-08).
+model ReconciliationRun {
+  day           String   @id @db.VarChar(10)
+  checked       Int
+  discrepancies Int
+  /// Transacciones que no se pudieron consultar en la pasarela.
+  failed        Int
+  finishedAt    DateTime @map("finished_at") @db.Timestamptz(3)
+
+  @@map("reconciliation_runs")
+}
+
+/// Diferencia entre un pago y la pasarela. Solo se marca: la resuelve una persona.
+model PaymentDiscrepancy {
+  id               String          @id @default(uuid()) @db.Uuid
+  paymentId        String          @map("payment_id") @db.Uuid
+  kind             DiscrepancyKind
+  localStatus      String          @map("local_status") @db.VarChar(30)
+  gatewayStatus    String          @map("gateway_status") @db.VarChar(30)
+  localAmountClp   Int             @map("local_amount_clp")
+  gatewayAmountClp Int             @map("gateway_amount_clp")
+  day              String          @db.VarChar(10)
+  resolvedAt       DateTime?       @map("resolved_at") @db.Timestamptz(3)
+  resolvedById     String?         @map("resolved_by_id") @db.Uuid
+  resolutionNote   String?         @map("resolution_note") @db.VarChar(500)
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  payment    Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  resolvedBy User?   @relation(fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@unique([paymentId, kind])
+  @@index([resolvedAt])
+  @@map("payment_discrepancies")
+}
+
 // ---------------------------------------------------------------------------
 // Difusión
 // ---------------------------------------------------------------------------
+
+/// Visitas a la ficha por día y campaña (RF-09). Solo contadores: sin cookies, IP ni usuario.
+model CoursePageView {
+  /// Día calendario en Punta Arenas (YYYY-MM-DD).
+  day         String @db.VarChar(10)
+  courseId    String @map("course_id") @db.Uuid
+  utmSource   String @default("") @map("utm_source") @db.VarChar(100)
+  utmMedium   String @default("") @map("utm_medium") @db.VarChar(100)
+  utmCampaign String @default("") @map("utm_campaign") @db.VarChar(150)
+  views       Int    @default(0)
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@id([day, courseId, utmSource, utmMedium, utmCampaign])
+  @@index([courseId])
+  @@map("course_page_views")
+}
 
 /// Interesado con consentimiento explícito (RF-02, Ley 21.719).
 model Lead {

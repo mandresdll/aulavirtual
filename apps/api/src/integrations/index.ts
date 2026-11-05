@@ -7,7 +7,8 @@ import { MockIdentityProvider } from './identity/mock.js';
 import { OidcIdentityProvider } from './identity/oidc.js';
 import type { IdentityProvider } from './identity/port.js';
 import { MockInvoicingGateway } from './invoicing/mock.js';
-import { PendingInvoicingGateway } from './invoicing/pending.js';
+import { ExportInvoicingGateway } from './invoicing/export.js';
+import { HttpInvoicingGateway } from './invoicing/http.js';
 import type { InvoicingGateway } from './invoicing/port.js';
 import { MockLmsGateway } from './lms/mock.js';
 import { MoodleLmsGateway } from './lms/moodle.js';
@@ -94,9 +95,14 @@ export function createIntegrations(env: Env): Integrations {
         : new MockCertificateValidator(),
 
     invoicing:
-      env.INVOICING_DRIVER === 'mock'
-        ? new MockInvoicingGateway()
-        : new PendingInvoicingGateway(env.INVOICING_DRIVER),
+      env.INVOICING_DRIVER === 'http'
+        ? new HttpInvoicingGateway({
+            baseUrl: required(env, 'INVOICING_API_URL'),
+            token: required(env, 'INVOICING_API_TOKEN'),
+          })
+        : env.INVOICING_DRIVER === 'export'
+          ? new ExportInvoicingGateway()
+          : new MockInvoicingGateway(),
 
     mailer:
       env.MAILER_DRIVER === 'memory'

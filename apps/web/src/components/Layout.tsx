@@ -4,11 +4,12 @@ import {
   LEGAL_DOCUMENT_SLUGS,
   LEGAL_DOCUMENT_TYPES,
 } from '@plataforma/shared';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { useCart, useMergeLocalCart } from '../lib/cart';
 import { useProviderInfo } from '../lib/commerce';
 import { useLogout, useSession } from '../lib/session';
+import { captureUtm } from '../lib/utm';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   `rounded px-3 py-2 text-sm font-medium text-white hover:bg-brand-800 ${
@@ -20,6 +21,8 @@ export function Layout() {
   const location = useLocation();
   const firstRender = useRef(true);
   useMergeLocalCart();
+  // Antes de que las páginas hijas lean las UTM de la visita.
+  useMemo(() => captureUtm(location.search), [location.search]);
 
   // Al cambiar de ruta, el foco va al contenido principal para lectores de pantalla.
   useEffect(() => {

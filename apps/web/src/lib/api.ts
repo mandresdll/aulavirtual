@@ -89,6 +89,32 @@ export async function apiSend<T extends z.ZodType>(
   return schema.parse(await response.json());
 }
 
+/** POST que responde un archivo: lo descarga con el nombre que indica el servidor. */
+export async function apiDownload(path: string, body: unknown, fallbackName: string) {
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(csrfToken ? { [CSRF_HEADER]: csrfToken } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new ApiError(0, 'NETWORK_ERROR', NETWORK_ERROR_MESSAGE);
+  }
+  if (!response.ok) await throwApiError(response);
+  const name = /filename="([^"]+)"/.exec(response.headers.get('content-disposition') ?? '')?.[1];
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name ?? fallbackName;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 async function throwApiError(response: Response): Promise<never> {
   const parsed = ErrorResponseSchema.safeParse(await response.json().catch(() => null));
   if (parsed.success) {

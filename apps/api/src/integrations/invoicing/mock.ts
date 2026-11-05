@@ -4,6 +4,7 @@ import type { InvoicingGateway, SalesDocumentInput, SalesDocumentResult } from '
 /** Emisor simulado: asigna folios correlativos y valida los datos mínimos de factura. */
 export class MockInvoicingGateway implements InvoicingGateway {
   readonly provider = 'mock';
+  readonly deliversByFile = false;
   private readonly documents = new Map<string, SalesDocumentResult>();
   private nextFolio = 1;
 

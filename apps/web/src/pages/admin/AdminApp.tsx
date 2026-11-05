@@ -12,7 +12,11 @@ const SECTIONS: { to: string; label: string; permission: Permission | null; end?
   { to: '/admin/inscripciones', label: 'Inscripciones', permission: 'enrollments:manage' },
   { to: '/admin/certificados', label: 'Certificados', permission: 'certificates:manage' },
   { to: '/admin/cupones', label: 'Cupones', permission: 'coupons:manage' },
-  { to: '/admin/ordenes', label: 'Órdenes', permission: 'orders:refund' },
+  { to: '/admin/ordenes', label: 'Ventas', permission: 'orders:refund' },
+  { to: '/admin/documentos', label: 'Documentos', permission: 'sales:manage' },
+  { to: '/admin/conciliacion', label: 'Conciliación', permission: 'sales:manage' },
+  { to: '/admin/reportes', label: 'Reportes', permission: 'reports:read' },
+  { to: '/admin/difusion', label: 'Difusión', permission: 'diffusion:manage' },
   { to: '/admin/legales', label: 'Textos legales', permission: 'legal:manage' },
   { to: '/admin/auditoria', label: 'Auditoría', permission: 'audit:read' },
 ];

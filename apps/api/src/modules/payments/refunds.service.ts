@@ -25,7 +25,7 @@ const NOT_FOUND = 'La orden no existe.';
  * Consulta de órdenes y devoluciones por la pasarela (RF-03). La llamada a la pasarela va entre
  * dos transacciones: la orden queda en `refund_requested` mientras tanto, lo que impide una
  * segunda devolución simultánea. La devolución total retira las inscripciones y libera los
- * cupos; la desmatrícula en el Aula Virtual llega con la Fase 5.
+ * cupos; el barrido `sync-withdrawals` desmatricula en el Aula Virtual.
  */
 export class RefundsService {
   private readonly now: () => Date;

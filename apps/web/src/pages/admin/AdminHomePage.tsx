@@ -42,9 +42,33 @@ const CARDS: { to: string; title: string; text: string; permission: Permission }
   },
   {
     to: '/admin/ordenes',
-    title: 'Órdenes',
-    text: 'Consulta órdenes y sus pagos, y realiza devoluciones.',
+    title: 'Ventas',
+    text: 'Listado de ventas, detalle de cada orden y devoluciones.',
     permission: 'orders:refund',
+  },
+  {
+    to: '/admin/documentos',
+    title: 'Documentos',
+    text: 'Archivo contable, folios de boletas y facturas.',
+    permission: 'sales:manage',
+  },
+  {
+    to: '/admin/conciliacion',
+    title: 'Conciliación',
+    text: 'Diferencias entre los pagos y la pasarela.',
+    permission: 'sales:manage',
+  },
+  {
+    to: '/admin/reportes',
+    title: 'Reportes',
+    text: 'Ingresos, inscritos, aprobación, certificados y conversión por campaña.',
+    permission: 'reports:read',
+  },
+  {
+    to: '/admin/difusion',
+    title: 'Difusión',
+    text: 'Enlaces con UTM, novedades e interesados.',
+    permission: 'diffusion:manage',
   },
   {
     to: '/admin/legales',

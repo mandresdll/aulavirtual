@@ -2,6 +2,23 @@
 
 API REST (Fastify + Zod + Prisma) y worker de trabajos asíncronos (BullMQ).
 
+## Requisitos que cubre (Fase 7)
+
+- **RF-02 Difusión** (`src/modules/diffusion/`):
+  - `POST /api/leads`: interesado con consentimiento explícito; el texto y la versión los guarda el
+    servidor. Límite `LEADS_RATE_LIMIT_MAX`.
+  - Baja en un clic `POST /api/leads/unsubscribe/{token}` (RFC 8058): alcanza a todo el correo.
+  - Novedades: borrador en el panel y envío por tandas (cola `diffusion`, `send-campaigns`).
+  - UTM de la visita al interesado y a la orden; una orden sin UTM hereda la del interesado.
+  - `POST /api/courses/{slug}/views`: contador diario sin cookies, IP ni usuario.
+- **RF-08 Ventas y documentos** (`src/modules/sales/`, cola `sales`):
+  - Listado con filtros y descarga en CSV o XLSX (`src/lib/tabular.ts`).
+  - Conciliación diaria (`reconcile-payments`, 06:00 de Punta Arenas): solo marca diferencias.
+  - Documentos: `submit-documents` envía al sistema de emisión; con `INVOICING_DRIVER=export` salen
+    en el archivo contable y el folio se registra en el panel.
+- **RF-09 Reportes** (`src/modules/reports/`): ingresos, inscritos, aprobación, certificados y
+  conversión por UTM, por curso, edición o mes, con descarga.
+
 ## Requisitos que cubre (Fase 6)
 
 - **RF-06 Certificación verificable** (`src/modules/certificates/`, `jobs/processors/certificates.ts`):
@@ -126,7 +143,7 @@ API REST (Fastify + Zod + Prisma) y worker de trabajos asíncronos (BullMQ).
   (Prisma), Redis (rate limit, BullMQ).
 - **SEG**: helmet (CSP, HSTS), CORS restringido, rate limit por IP, validación Zod, errores sin
   detalles internos, logs sin datos personales, configuración validada.
-- **RF-03, RF-05, RF-08, RF-10**: puertos de integración con adaptadores simulados.
+- **RF-03, RF-05, RF-10**: puertos de integración con adaptadores simulados.
 - **RF-12**: contrato de auditoría (persistido desde la Fase 2).
 
 ## Estructura
@@ -217,6 +234,16 @@ token CSRF. `catalog:manage` corresponde a `uta_admin` y `uta_editor`; `audit:re
 | POST       | `/api/admin/courses/{id}/editions`                                               | `catalog:manage`                       |
 | PUT/DELETE | `/api/admin/editions/{id}`                                                       | `catalog:manage`                       |
 | POST       | `/api/admin/editions/{id}/publish·unpublish·duplicate`                           | `catalog:manage`                       |
+| GET        | `/api/admin/sales`, `/api/admin/sales/export`                                    | `sales:manage`                         |
+| GET        | `/api/admin/documents`                                                           | `sales:manage`                         |
+| POST       | `/api/admin/documents/export`, `/api/admin/documents/{id}/folio·retry`           | `sales:manage`                         |
+| GET·POST   | `/api/admin/reconciliation`                                                      | `sales:manage`                         |
+| POST       | `/api/admin/reconciliation/{id}/resolve`                                         | `sales:manage`                         |
+| GET        | `/api/admin/reports`, `/api/admin/reports/export`                                | `reports:read`                         |
+| GET        | `/api/admin/leads`                                                               | `diffusion:manage`                     |
+| GET·POST   | `/api/admin/campaigns`                                                           | `diffusion:manage`                     |
+| POST       | `/api/admin/campaigns/{id}/send`                                                 | `diffusion:manage`                     |
+| POST       | `/api/leads`, `/api/leads/unsubscribe/{token}`, `/api/courses/{slug}/views`      | Público                                |
 | GET        | `/api/admin/certificates` (`q`)                                                  | `certificates:manage`                  |
 | POST       | `/api/admin/certificates/{id}/reissue·revoke`                                    | `certificates:manage`                  |
 | GET        | `/api/admin/enrollments/review`                                                  | `certificates:manage`                  |

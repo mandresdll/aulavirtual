@@ -3,6 +3,14 @@
 SPA React + TypeScript (Vite) con el sitio público, el área del comprador y el panel de
 administración (`/admin`, cargado en un chunk aparte).
 
+## Requisitos que cubre (Fase 7)
+
+- **RF-02**: formulario de interés en la ficha (`LeadForm`), `/baja/:token` y UTM de la visita
+  guardadas durante la pestaña (`lib/utm.ts`). Panel `/admin/difusion`: generador de enlaces,
+  novedades e interesados.
+- **RF-08**: `/admin/ordenes` con listado y descarga, `/admin/documentos` y `/admin/conciliacion`.
+- **RF-09**: `/admin/reportes` con gráfico, tablas y descargas.
+
 ## Requisitos que cubre (Fase 6)
 
 - **RF-06**: `/verificar` y `/verificar/:codigo` (públicas), con resultado válido, revocado,

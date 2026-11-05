@@ -21,7 +21,7 @@ simulado** (regla 2 de [CLAUDE.md](../CLAUDE.md)). Código en `apps/api/src/inte
 | `IdentityProvider`     | `IDENTITY_DRIVER`              | `mock`, `oidc`           | **OIDC real listo** (falta registrar el cliente en el IdP)    | Q2, Q3           |
 | `SgaGateway`           | `SGA_DRIVER`                   | `mock`, `http`           | HTTP listo sobre un **contrato supuesto**                     | Q7               |
 | `CertificateValidator` | `CERTIFICATE_VALIDATOR_DRIVER` | `mock`, `sga`            | Mock listo; SGA con contrato supuesto                         | Q5               |
-| `InvoicingGateway`     | `INVOICING_DRIVER`             | `mock`, `export`, `http` | Mock listo; export/http en Fase 7                             | Q6               |
+| `InvoicingGateway`     | `INVOICING_DRIVER`             | `mock`, `export`, `http` | Mock, `export` y `http` (contrato supuesto)                   | Q6               |
 | `Mailer`               | `MAILER_DRIVER`                | `smtp`, `memory`         | **SMTP real listo** (Mailpit en desarrollo)                   | Q9               |
 | `AiAssistant`          | `AI_ASSISTANT_DRIVER`          | `disabled`               | Sin IA en esta entrega (EX-04)                                | —                |
 
@@ -174,9 +174,20 @@ simulado** (regla 2 de [CLAUDE.md](../CLAUDE.md)). Código en `apps/api/src/inte
   tiene API, adaptador `http`. Tratamiento tributario (afecto/exento) configurable por edición.
 - **Validaciones del mock**: factura exige RUT, giro y dirección; la suma de líneas debe
   coincidir con el total.
+- **`export`**: los documentos salen en el archivo contable del panel (`/admin/documentos`) y el
+  folio se registra a mano. Columnas en `INVOICING_EXPORT_COLUMNS`; CSV con punto y coma y BOM.
+- **`http`** (`invoicing/http.ts`), sobre un contrato **supuesto**:
+  - `POST {url}/documents` con el documento e `Idempotency-Key` (id de la orden). 409 = ya recibido.
+  - `GET {url}/documents/{externalId}`.
+  - Ambos responden `{ externalId, status, folio? }`, con `status` entre `pending`, `issued`,
+    `exported` y `rejected`. Autenticación `Authorization: Bearer {token}`.
+  - Errores 5xx o de red se reintentan; los 4xx y `rejected` quedan con error en el panel.
+- **IVA**: se supone que los precios afectos ya incluyen IVA; `VAT_RATE_PERCENT` separa neto e IVA.
+- **Devoluciones**: no anulan el documento. La nota de crédito se gestiona en el sistema de emisión;
+  el archivo informa el monto devuelto.
 - **Variables**: `INVOICING_API_URL`, `INVOICING_API_TOKEN`.
 - **Por confirmar**: API o importación de archivos, formato contable, si los cursos están
-  afectos o exentos de IVA.
+  afectos o exentos de IVA, si los precios incluyen IVA y cómo se emiten las notas de crédito.
 
 ## Correo — `Mailer`
 

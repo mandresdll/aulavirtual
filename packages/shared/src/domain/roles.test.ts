@@ -21,6 +21,15 @@ describe('platform permissions (deny by default)', () => {
     expect(canAccessAdmin(['uta_finance'])).toBe(true);
   });
 
+  it('gives the reports role only the reports, and finance the sales', () => {
+    expect(hasPermission(['uta_reports'], 'reports:read')).toBe(true);
+    expect(hasPermission(['uta_reports'], 'sales:manage')).toBe(false);
+    expect(hasPermission(['uta_finance'], 'sales:manage')).toBe(true);
+    expect(hasPermission(['uta_finance'], 'diffusion:manage')).toBe(false);
+    expect(hasPermission(['uta_editor'], 'diffusion:manage')).toBe(true);
+    expect(canAccessAdmin(['uta_reports'])).toBe(true);
+  });
+
   it('denies everything without roles', () => {
     expect(hasPermission([], 'catalog:manage')).toBe(false);
     expect(canAccessAdmin([])).toBe(false);

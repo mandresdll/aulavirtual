@@ -26,6 +26,7 @@ import { ErrorMessage, LoadingMessage } from '../components/QueryState';
 import { useCreateOrder, useProviderInfo, useQuote } from '../lib/commerce';
 import { useSession } from '../lib/session';
 import { useDocumentTitle } from '../lib/use-document-title';
+import { readUtm } from '../lib/utm';
 
 const CheckoutFormSchema = z
   .object({
@@ -135,6 +136,7 @@ function Checkout() {
                 documentType: form.documentType,
                 invoice: form.documentType === 'invoice' ? (form.invoice as InvoiceData) : null,
                 acceptedLegal: data.legal.map(({ type, version }) => ({ type, version })),
+                utm: readUtm(),
               },
               { onSuccess: (order) => void navigate(`/ordenes/${order.number}`) },
             )

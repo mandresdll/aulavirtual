@@ -46,8 +46,18 @@ import { RefundsService } from './modules/payments/refunds.service.js';
 import { enrollmentRoutes } from './modules/enrollment/enrollment.routes.js';
 import { EnrollmentService } from './modules/enrollment/enrollment.service.js';
 import { WaitlistService } from './modules/enrollment/waitlist.service.js';
+import { CampaignsService } from './modules/diffusion/campaigns.service.js';
+import { diffusionRoutes } from './modules/diffusion/diffusion.routes.js';
+import { LeadsService } from './modules/diffusion/leads.service.js';
 import { legalRoutes } from './modules/legal/legal.routes.js';
 import { LegalService } from './modules/legal/legal.service.js';
+import { reportsRoutes } from './modules/reports/reports.routes.js';
+import { ReportsService } from './modules/reports/reports.service.js';
+import { DOCUMENT_COLUMN_KEYS } from './config/env.js';
+import { DocumentsService } from './modules/sales/documents.service.js';
+import { ReconciliationService } from './modules/sales/reconciliation.service.js';
+import { salesRoutes } from './modules/sales/sales.routes.js';
+import { SalesService } from './modules/sales/sales.service.js';
 import { seoRoutes } from './modules/seo/seo.routes.js';
 import { auditPlugin, PrismaAuditRecorder, type AuditRecorder } from './plugins/audit.js';
 import { errorsPlugin } from './plugins/errors.js';
@@ -269,6 +279,48 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
           ...(deps.now ? { now: deps.now } : {}),
         }),
         verifyRateLimit: { max: env.VERIFY_RATE_LIMIT_MAX, timeWindowMs: env.RATE_LIMIT_WINDOW_MS },
+      });
+      await api.register(salesRoutes, {
+        sales: new SalesService(deps.prisma),
+        documents: new DocumentsService({
+          prisma: deps.prisma,
+          gateway: deps.integrations.invoicing,
+          audit: recorder,
+          logger: app.log,
+          columns: env.INVOICING_EXPORT_COLUMNS ?? DOCUMENT_COLUMN_KEYS,
+          vatPercent: env.VAT_RATE_PERCENT,
+          ...(deps.now ? { now: deps.now } : {}),
+        }),
+        reconciliation: new ReconciliationService({
+          prisma: deps.prisma,
+          gateway,
+          mailer: deps.integrations.mailer,
+          audit: recorder,
+          logger: app.log,
+          ...(env.UTA_ALERT_EMAIL ? { alertEmail: env.UTA_ALERT_EMAIL } : {}),
+          ...(deps.now ? { now: deps.now } : {}),
+        }),
+      });
+      await api.register(reportsRoutes, { reports: new ReportsService(deps.prisma) });
+      await api.register(diffusionRoutes, {
+        leads: new LeadsService({
+          prisma: deps.prisma,
+          audit: recorder,
+          ...(deps.now ? { now: deps.now } : {}),
+        }),
+        campaigns: new CampaignsService({
+          prisma: deps.prisma,
+          mailer: deps.integrations.mailer,
+          audit: recorder,
+          logger: app.log,
+          webUrl,
+          ...(deps.now ? { now: deps.now } : {}),
+        }),
+        leadsRateLimit: { max: env.LEADS_RATE_LIMIT_MAX, timeWindowMs: env.RATE_LIMIT_WINDOW_MS },
+        viewsRateLimit: {
+          max: env.PAGE_VIEW_RATE_LIMIT_MAX,
+          timeWindowMs: env.RATE_LIMIT_WINDOW_MS,
+        },
       });
       if (gateway instanceof MockPaymentGateway) {
         await api.register(mockPaymentRoutes, { gateway });
