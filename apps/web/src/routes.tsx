@@ -7,8 +7,10 @@ import { CoursePage } from './pages/CoursePage';
 import { HomePage } from './pages/HomePage';
 import { LegalPage } from './pages/LegalPage';
 import { LoginPage } from './pages/LoginPage';
+import { MyCoursesPage } from './pages/MyCoursesPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { OrderPage } from './pages/OrderPage';
+import { VerifyPage } from './pages/VerifyPage';
 
 /**
  * El panel de administración se carga en chunks aparte (code splitting): el sitio público no
@@ -26,6 +28,9 @@ export const routes: RouteObject[] = [
       { path: 'carrito', element: <CartPage /> },
       { path: 'checkout', element: <CheckoutPage /> },
       { path: 'ordenes/:number', element: <OrderPage /> },
+      { path: 'mis-cursos', element: <MyCoursesPage /> },
+      { path: 'verificar', element: <VerifyPage /> },
+      { path: 'verificar/:codigo', element: <VerifyPage /> },
       { path: 'legal/:slug', element: <LegalPage /> },
       {
         path: 'admin',
@@ -87,6 +92,22 @@ export const routes: RouteObject[] = [
                 Component: () => (
                   <RequirePermission permission="enrollments:manage">
                     <EnrollmentsPage />
+                  </RequirePermission>
+                ),
+              };
+            },
+          },
+          {
+            path: 'certificados',
+            lazy: async () => {
+              const [{ CertificatesPage }, { RequirePermission }] = await Promise.all([
+                import('./pages/admin/CertificatesPage'),
+                import('./pages/admin/AdminApp'),
+              ]);
+              return {
+                Component: () => (
+                  <RequirePermission permission="certificates:manage">
+                    <CertificatesPage />
                   </RequirePermission>
                 ),
               };
