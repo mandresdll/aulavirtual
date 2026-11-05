@@ -2,13 +2,7 @@ import { PLATFORM_ROLE_LABELS } from '@plataforma/shared';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { MOCK_IDENTITIES } from '../../integrations/mock-identities.js';
-
-const escapeHtml = (value: string) =>
-  value.replace(
-    /[&<>"']/g,
-    (char) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char] ?? char,
-  );
+import { escapeHtml } from '../../lib/html.js';
 
 function callbackLink(params: Record<string, string>): string {
   return `/api/auth/callback?${new URLSearchParams(params).toString()}`;

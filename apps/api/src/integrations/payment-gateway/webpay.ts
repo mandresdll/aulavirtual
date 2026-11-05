@@ -1,4 +1,4 @@
-import { Options, WebpayPlus } from 'transbank-sdk';
+import transbank from 'transbank-sdk';
 import { IntegrationError } from '../errors.js';
 import type {
   CreateTransactionInput,
@@ -9,6 +9,9 @@ import type {
   RefundResult,
   TransactionDetails,
 } from './port.js';
+
+// Paquete CommonJS: Node 22 no expone sus exportaciones con nombre a un módulo ESM.
+const { Options, WebpayPlus } = transbank;
 
 export interface WebpayConfig {
   environment: 'integration' | 'production';

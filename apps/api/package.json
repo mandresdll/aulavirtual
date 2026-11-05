@@ -12,6 +12,7 @@
     "worker": "tsx src/worker.ts",
     "build": "prisma generate --no-hints && tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
+    "smoke": "node --input-type=module -e \"await import('./dist/app.js'); process.exit(0)\"",
     "typecheck": "prisma generate --no-hints && tsc --noEmit",
     "test": "vitest run --project unit",
     "test:integration": "prisma generate --no-hints && vitest run --project integration --no-file-parallelism",

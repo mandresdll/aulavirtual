@@ -11,6 +11,7 @@ import type { PrismaClient } from '@prisma/client';
 import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage } from 'pdf-lib';
 import type { Mailer } from '../../integrations/mailer/port.js';
 import { AppError } from '../../lib/errors.js';
+import { escapeHtml } from '../../lib/html.js';
 import type { PaymentsLogger } from './payments.service.js';
 
 export interface ReceiptData {
@@ -142,13 +143,6 @@ export async function buildReceiptPdf(
 function drawText(page: PDFPage, value: string, options: Parameters<PDFPage['drawText']>[1]): void {
   page.drawText(value, options);
 }
-
-const escapeHtml = (value: string) =>
-  value.replace(
-    /[&<>"']/g,
-    (char) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char] ?? char,
-  );
 
 export interface ReceiptsServiceOptions {
   prisma: PrismaClient;

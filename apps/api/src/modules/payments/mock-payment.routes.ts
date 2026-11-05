@@ -1,9 +1,12 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import type { MockPaymentGateway } from '../../integrations/payment-gateway/mock.js';
+import { escapeHtml } from '../../lib/html.js';
 
 const returnLink = (params: Record<string, string>) =>
   `/api/payments/return?${new URLSearchParams(params).toString()}`;
+const decideLink = (token: string, outcome: 'approved' | 'rejected') =>
+  `/api/dev/mock-payment/decide?${new URLSearchParams({ outcome, token }).toString()}`;
 
 /**
  * Página de la pasarela simulada (solo con `PAYMENT_GATEWAY_DRIVER=mock`, bloqueado en producción
@@ -47,9 +50,9 @@ export const mockPaymentRoutes: FastifyPluginAsyncZod<{ gateway: MockPaymentGate
 <h1>Pasarela de pagos simulada</h1>
 <p class="note">Solo para desarrollo y pruebas: no se realiza ningún cobro.</p>
 <ul>
-<li><a href="/api/dev/mock-payment/decide?outcome=approved&amp;token=${token}">Aprobar el pago</a></li>
-<li><a href="/api/dev/mock-payment/decide?outcome=rejected&amp;token=${token}">Rechazar el pago</a></li>
-<li><a href="${returnLink({ TBK_TOKEN: token }).replace('&', '&amp;')}">Anular y volver al comercio</a></li>
+<li><a href="${escapeHtml(decideLink(token, 'approved'))}">Aprobar el pago</a></li>
+<li><a href="${escapeHtml(decideLink(token, 'rejected'))}">Rechazar el pago</a></li>
+<li><a href="${escapeHtml(returnLink({ TBK_TOKEN: token }))}">Anular y volver al comercio</a></li>
 </ul>
 </main>
 </body>
