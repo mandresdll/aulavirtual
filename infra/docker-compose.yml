@@ -1,7 +1,6 @@
 # Servicios comunes a todos los entornos. No publica puertos de BD ni Redis.
 #   Desarrollo:  docker compose up            (desde la raíz; usa compose.yaml)
-#   Staging:     docker compose -f infra/docker-compose.yml -f infra/docker-compose.staging.yml up -d
-#   Producción:  docker compose -f infra/docker-compose.yml -f infra/docker-compose.prod.yml up -d
+#   Staging y producción: ver docs/despliegue.md.
 
 x-app-env: &app-env
   env_file:

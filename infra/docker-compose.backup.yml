@@ -1,0 +1,29 @@
+# Respaldo diario de PostgreSQL para staging y producción. Se agrega con un `-f` más.
+# Los archivos quedan en el volumen `backups`: cópialos fuera del servidor (docs/despliegue.md).
+services:
+  backup:
+    image: ${IMAGE_REGISTRY:-plataforma}/backup:${IMAGE_TAG:-local}
+    build:
+      context: ./backup
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      BACKUP_SCHEDULE: ${BACKUP_SCHEDULE:-0 6 * * *}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:-}
+    volumes:
+      - backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+
+volumes:
+  backups:
