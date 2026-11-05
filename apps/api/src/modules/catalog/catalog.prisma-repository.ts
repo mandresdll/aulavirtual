@@ -19,6 +19,7 @@ const editionSelect = {
   taxTreatment: true,
   capacity: true,
   freeForCommunity: true,
+  communityProfiles: true,
   schedule: true,
   location: true,
 } satisfies Prisma.CourseEditionSelect;

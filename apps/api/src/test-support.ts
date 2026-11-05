@@ -51,6 +51,7 @@ export function testEdition(overrides: Partial<EditionRecord> = {}): EditionReco
     taxTreatment: 'exempt',
     capacity: 30,
     freeForCommunity: false,
+    communityProfiles: [],
     schedule: 'Martes 19:00',
     location: null,
     ...overrides,

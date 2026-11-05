@@ -37,10 +37,14 @@ describe('createIntegrations', () => {
 
   it('real adapters not yet implemented fail loudly instead of pretending to work', async () => {
     const integrations = createIntegrations(
-      testEnv({ LMS_DRIVER: 'moodle', MOODLE_URL: 'https://aula.example.cl', MOODLE_TOKEN: 't' }),
+      testEnv({
+        CERTIFICATE_VALIDATOR_DRIVER: 'sga',
+        CERTIFICATE_VALIDATOR_URL: 'https://sga.example.cl',
+        CERTIFICATE_VALIDATOR_TOKEN: 't',
+      }),
     );
-    await expect(integrations.lms.findUserByEmail('a@example.com')).rejects.toBeInstanceOf(
-      AdapterNotImplementedError,
-    );
+    await expect(
+      integrations.certificateValidator.revoke({ code: 'CODIGO', reason: 'prueba' }),
+    ).rejects.toBeInstanceOf(AdapterNotImplementedError);
   });
 });

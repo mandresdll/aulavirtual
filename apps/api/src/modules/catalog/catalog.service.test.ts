@@ -59,6 +59,7 @@ describe('pickNextEdition', () => {
     taxTreatment: 'exempt' as const,
     capacity: 10,
     freeForCommunity: false,
+    communityProfiles: [],
     schedule: null,
     location: null,
   };

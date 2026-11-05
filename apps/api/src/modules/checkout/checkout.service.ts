@@ -14,6 +14,7 @@ import { AppError } from '../../lib/errors.js';
 import type { AuditRecorder } from '../../plugins/audit.js';
 import type { AuditActor } from '../admin/support.js';
 import { catalogCacheKeys, isEnrollmentOpen } from '../catalog/catalog.service.js';
+import { consumeWaitlistHolds, createEnrollment } from '../enrollment/enrollment-records.js';
 import { acceptanceHash, type LegalService } from '../legal/legal.service.js';
 import { releaseOrderHold, transitionOrder, transitionPayment } from '../payments/state-machine.js';
 import {
@@ -25,7 +26,7 @@ import {
   type CouponRules,
 } from './pricing.js';
 
-type Db = PrismaClient | Prisma.TransactionClient;
+export type Db = PrismaClient | Prisma.TransactionClient;
 
 export interface CheckoutServiceOptions {
   prisma: PrismaClient;
@@ -44,14 +45,14 @@ const editionInclude = {
 } satisfies Prisma.CourseEditionInclude;
 type EditionRow = Prisma.CourseEditionGetPayload<{ include: typeof editionInclude }>;
 
-interface Availability {
+export interface Availability {
   edition: EditionRow;
   reason: string | null;
 }
 
 const UNAVAILABLE = 'Esta edición ya no está disponible.';
 const CLOSED = 'Las inscripciones de esta edición están cerradas.';
-const SOLD_OUT = 'Esta edición no tiene cupos disponibles.';
+export const SOLD_OUT = 'Esta edición no tiene cupos disponibles.';
 const ENROLLED = 'Ya estás inscrito en esta edición.';
 const PENDING = 'Ya tienes una orden pendiente de pago para esta edición.';
 
@@ -172,7 +173,7 @@ export class CheckoutService {
    * Si cada edición se puede comprar ahora (estado, plazo, cupos, inscripción o compra
    * pendiente del mismo usuario). Mantiene el orden de `editionIds`.
    */
-  private async availability(
+  async availability(
     db: Db,
     editionIds: readonly string[],
     userId: string | null,
@@ -200,7 +201,7 @@ export class CheckoutService {
             }),
             db.seatReservation.findMany({
               where: { userId, editionId: { in: ids }, status: 'active', expiresAt: { gt: now } },
-              select: { editionId: true },
+              select: { editionId: true, orderId: true },
             }),
           ])
         : Promise.resolve([[], []] as const),
@@ -208,7 +209,14 @@ export class CheckoutService {
     const taken = new Map(enrollments.map((row) => [row.editionId, row._count._all]));
     const reserved = new Map(reservations.map((row) => [row.editionId, row._count._all]));
     const enrolled = new Set(mine[0].map((row) => row.editionId));
-    const pending = new Set(mine[1].map((row) => row.editionId));
+    // Una reserva sin orden es el cupo que la lista de espera le retiene a este usuario.
+    const reservationsOfUser: readonly { editionId: string; orderId: string | null }[] = mine[1];
+    const pending = new Set(
+      reservationsOfUser.filter((row) => row.orderId !== null).map((row) => row.editionId),
+    );
+    const held = new Set(
+      reservationsOfUser.filter((row) => row.orderId === null).map((row) => row.editionId),
+    );
     const byId = new Map(editions.map((edition) => [edition.id, edition]));
 
     return ids.flatMap((id) => {
@@ -231,7 +239,10 @@ export class CheckoutService {
         reason = ENROLLED;
       } else if (pending.has(id)) {
         reason = PENDING;
-      } else if (edition.capacity - (taken.get(id) ?? 0) - (reserved.get(id) ?? 0) <= 0) {
+      } else if (
+        !held.has(id) &&
+        edition.capacity - (taken.get(id) ?? 0) - (reserved.get(id) ?? 0) <= 0
+      ) {
         reason = SOLD_OUT;
       }
       return [{ edition, reason }];
@@ -493,16 +504,17 @@ export class CheckoutService {
 
     if (free) {
       // Matrícula en el Aula Virtual: la procesa la cola `enrollment` (Fase 5).
-      await tx.enrollment.createMany({
-        data: order.items.map((item) => ({
+      for (const item of order.items) {
+        await createEnrollment(tx, {
           userId,
           editionId: item.editionId,
           orderItemId: item.id,
-          source: coupon ? ('coupon_100' as const) : ('purchase' as const),
-        })),
-      });
+          source: coupon ? 'coupon_100' : 'purchase',
+        });
+      }
     }
 
+    await consumeWaitlistHolds(tx, userId, editionIds);
     await tx.cartItem.deleteMany({
       where: { cartId: cart?.id ?? '', editionId: { in: editionIds } },
     });

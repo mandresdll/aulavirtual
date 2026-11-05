@@ -29,6 +29,7 @@ function course(overrides: Partial<CourseDetailWithSeo> = {}): CourseDetailWithS
     availableSeats: 4,
     enrollmentOpen: true,
     freeForCommunity: false,
+    communityProfiles: [],
     schedule: null,
     location: 'Sede Punta Arenas',
   };

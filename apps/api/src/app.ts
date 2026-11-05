@@ -41,6 +41,9 @@ import { paymentsRoutes } from './modules/payments/payments.routes.js';
 import { PaymentsService } from './modules/payments/payments.service.js';
 import { ReceiptsService } from './modules/payments/receipts.service.js';
 import { RefundsService } from './modules/payments/refunds.service.js';
+import { enrollmentRoutes } from './modules/enrollment/enrollment.routes.js';
+import { EnrollmentService } from './modules/enrollment/enrollment.service.js';
+import { WaitlistService } from './modules/enrollment/waitlist.service.js';
 import { legalRoutes } from './modules/legal/legal.routes.js';
 import { LegalService } from './modules/legal/legal.service.js';
 import { seoRoutes } from './modules/seo/seo.routes.js';
@@ -221,6 +224,30 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
           audit: recorder,
           cache,
           checkout,
+          ...(deps.now ? { now: deps.now } : {}),
+        }),
+        rateLimit: { max: env.CHECKOUT_RATE_LIMIT_MAX, timeWindowMs: env.RATE_LIMIT_WINDOW_MS },
+      });
+      await api.register(enrollmentRoutes, {
+        enrollment: new EnrollmentService({
+          prisma: deps.prisma,
+          lms: deps.integrations.lms,
+          mailer: deps.integrations.mailer,
+          audit: recorder,
+          cache,
+          checkout,
+          logger: app.log,
+          webUrl,
+          ...(deps.now ? { now: deps.now } : {}),
+        }),
+        waitlist: new WaitlistService({
+          prisma: deps.prisma,
+          mailer: deps.integrations.mailer,
+          audit: recorder,
+          checkout,
+          logger: app.log,
+          webUrl,
+          offerHours: env.WAITLIST_OFFER_HOURS,
           ...(deps.now ? { now: deps.now } : {}),
         }),
         rateLimit: { max: env.CHECKOUT_RATE_LIMIT_MAX, timeWindowMs: env.RATE_LIMIT_WINDOW_MS },

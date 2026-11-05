@@ -57,6 +57,7 @@ function toCachedEdition(edition: EditionRecord): CachedEdition {
     taxTreatment: edition.taxTreatment,
     capacity: edition.capacity,
     freeForCommunity: edition.freeForCommunity,
+    communityProfiles: edition.communityProfiles,
     schedule: edition.schedule,
     location: edition.location,
   };
