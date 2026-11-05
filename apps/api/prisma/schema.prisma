@@ -638,6 +638,8 @@ model Certificate {
   validatorSyncStatus   SyncStatus        @default(pending) @map("validator_sync_status")
   validatorSyncedAt     DateTime?         @map("validator_synced_at") @db.Timestamptz(3)
   validatorLastError    String?           @map("validator_last_error") @db.VarChar(1000)
+  /// Cuándo se envió el certificado por correo; `null` lo deja pendiente para el worker.
+  emailSentAt           DateTime?         @map("email_sent_at") @db.Timestamptz(3)
   createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt             DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 

@@ -32,6 +32,8 @@ import { PrismaCatalogRepository } from './modules/catalog/catalog.prisma-reposi
 import type { CatalogRepository } from './modules/catalog/catalog.repository.js';
 import { catalogRoutes } from './modules/catalog/catalog.routes.js';
 import { CatalogService } from './modules/catalog/catalog.service.js';
+import { certificatesRoutes } from './modules/certificates/certificates.routes.js';
+import { CertificatesService } from './modules/certificates/certificates.service.js';
 import { checkoutRoutes } from './modules/checkout/checkout.routes.js';
 import { CheckoutService } from './modules/checkout/checkout.service.js';
 import { healthRoutes, type ReadinessCheck } from './modules/health/health.routes.js';
@@ -251,6 +253,22 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
           ...(deps.now ? { now: deps.now } : {}),
         }),
         rateLimit: { max: env.CHECKOUT_RATE_LIMIT_MAX, timeWindowMs: env.RATE_LIMIT_WINDOW_MS },
+      });
+      await api.register(certificatesRoutes, {
+        certificates: new CertificatesService({
+          prisma: deps.prisma,
+          lms: deps.integrations.lms,
+          validator: deps.integrations.certificateValidator,
+          mailer: deps.integrations.mailer,
+          audit: recorder,
+          logger: app.log,
+          provider,
+          webUrl,
+          graceDays: env.COURSE_RESULT_GRACE_DAYS,
+          ...(env.MOODLE_URL ? { lmsUrl: env.MOODLE_URL } : {}),
+          ...(deps.now ? { now: deps.now } : {}),
+        }),
+        verifyRateLimit: { max: env.VERIFY_RATE_LIMIT_MAX, timeWindowMs: env.RATE_LIMIT_WINDOW_MS },
       });
       if (gateway instanceof MockPaymentGateway) {
         await api.register(mockPaymentRoutes, { gateway });

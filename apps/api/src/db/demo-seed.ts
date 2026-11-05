@@ -29,6 +29,7 @@ export const DEMO_COUPON_CODE = 'BIENVENIDA10';
 /** Cupón del 100 % (beca): genera órdenes con total $0 sin pasar por la pasarela. */
 export const DEMO_FULL_COUPON_CODE = 'BECA-UTA-100';
 export const DEMO_LEGAL_VERSION = '2026.0-borrador';
+export const DEMO_CERTIFICATE_CODE = 'DEM0-CERT-0001';
 
 interface DemoEdition {
   code: string;
@@ -400,6 +401,25 @@ export async function seedDemoData(
         update: {},
       });
     }
+
+    // Certificado de demostración: la inscripción de `mock-teacher` queda aprobada.
+    const teacher = await tx.user.findUniqueOrThrow({ where: { idpSubject: 'mock-teacher' } });
+    const approved = await tx.enrollment.update({
+      where: { userId_editionId: { userId: teacher.id, editionId: soldOutId as string } },
+      data: { status: 'completed', completedAt: at(now, -1), welcomeSentAt: at(now, -30) },
+    });
+    await tx.certificate.upsert({
+      where: { code: DEMO_CERTIFICATE_CODE },
+      create: {
+        enrollmentId: approved.id,
+        code: DEMO_CERTIFICATE_CODE,
+        recipientName: teacher.name,
+        issuedAt: at(now, -1),
+        emailSentAt: at(now, -1),
+        validatorSyncStatus: 'synced',
+      },
+      update: {},
+    });
 
     const couponData = {
       type: 'percentage',
