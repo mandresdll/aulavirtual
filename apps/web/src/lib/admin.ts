@@ -1,4 +1,7 @@
 import {
+  AdminOrderSchema,
+  IDEMPOTENCY_HEADER,
+  type RefundRequest,
   AdminCouponSchema,
   AdminCouponsResponseSchema,
   AdminLegalDocumentSchema,
@@ -226,5 +229,24 @@ export function usePublishLegal() {
         queryClient.invalidateQueries({ queryKey: ADMIN_KEY }),
         queryClient.invalidateQueries({ queryKey: ['legal'] }),
       ]),
+  });
+}
+
+export function useAdminOrder(number: string | undefined) {
+  return useQuery({
+    queryKey: [...ADMIN_KEY, 'order', number],
+    queryFn: () => apiFetch(`/api/admin/orders/${number}`, AdminOrderSchema),
+    enabled: number !== undefined,
+  });
+}
+
+export function useRefundOrder(number: string, idempotencyKey: string) {
+  const invalidate = useInvalidateAdmin();
+  return useMutation({
+    mutationFn: (input: RefundRequest) =>
+      apiSend(`/api/admin/orders/${number}/refunds`, 'POST', AdminOrderSchema, input, {
+        [IDEMPOTENCY_HEADER]: idempotencyKey,
+      }),
+    onSuccess: invalidate,
   });
 }

@@ -139,6 +139,8 @@ describe('checkout', () => {
           documentType: 'receipt',
           expiresAt: '2026-06-01T12:15:00.000Z',
           createdAt: '2026-06-01T12:00:00.000Z',
+          payment: null,
+          paymentAttemptsLeft: 3,
         },
       }),
       'GET /api/orders/UTA-2026-000001': {
@@ -152,6 +154,8 @@ describe('checkout', () => {
         documentType: 'receipt',
         expiresAt: '2026-06-01T12:15:00.000Z',
         createdAt: '2026-06-01T12:00:00.000Z',
+        payment: null,
+        paymentAttemptsLeft: 3,
       },
     });
     const router = renderAt('/checkout');
@@ -214,6 +218,125 @@ describe('checkout', () => {
     const router = renderAt('/checkout');
     await vi.waitFor(() => expect(router.state.location.pathname).toBe('/ingresar'));
     expect(router.state.location.search).toBe('?returnTo=%2Fcheckout');
+  });
+});
+
+describe('order payment', () => {
+  const order = (overrides: Record<string, unknown> = {}) => ({
+    number: 'UTA-2026-000001',
+    status: 'awaiting_payment',
+    lines: quote().lines,
+    subtotalClp: 89_000,
+    discountClp: 0,
+    totalClp: 89_000,
+    couponCode: null,
+    documentType: 'receipt',
+    expiresAt: '2026-06-01T12:15:00.000Z',
+    createdAt: '2026-06-01T12:00:00.000Z',
+    payment: null,
+    paymentAttemptsLeft: 3,
+    ...overrides,
+  });
+
+  it('starts the payment with the CSRF token and goes to the gateway', async () => {
+    const assign = vi.fn();
+    vi.stubGlobal('location', { ...window.location, assign });
+    const calls = mockServer({
+      'GET /api/auth/session': SESSION,
+      'GET /api/orders/UTA-2026-000001': order(),
+      'POST /api/orders/UTA-2026-000001/pay': {
+        redirectUrl: 'https://cursos.example.cl/api/dev/mock-payment?token=abc',
+        formFields: null,
+      },
+    });
+    renderAt('/ordenes/UTA-2026-000001');
+    await userEvent.click(await screen.findByRole('button', { name: 'Pagar $89.000' }));
+    await vi.waitFor(() =>
+      expect(assign).toHaveBeenCalledWith(
+        'https://cursos.example.cl/api/dev/mock-payment?token=abc',
+      ),
+    );
+    const post = calls.find((call) => call.method === 'POST');
+    expect(post?.headers.get('x-csrf-token')).toBe('csrf-123');
+    vi.unstubAllGlobals();
+  });
+
+  it('sends Webpay the token by POST', async () => {
+    const submit = vi.spyOn(HTMLFormElement.prototype, 'submit').mockImplementation(() => {});
+    mockServer({
+      'GET /api/auth/session': SESSION,
+      'GET /api/orders/UTA-2026-000001': order(),
+      'POST /api/orders/UTA-2026-000001/pay': {
+        redirectUrl: 'https://webpay3gint.transbank.cl/webpayserver/initTransaction',
+        formFields: { token_ws: 'abc' },
+      },
+    });
+    renderAt('/ordenes/UTA-2026-000001');
+    await userEvent.click(await screen.findByRole('button', { name: 'Pagar $89.000' }));
+    await vi.waitFor(() => expect(submit).toHaveBeenCalled());
+    const form = submit.mock.contexts[0] as HTMLFormElement;
+    expect(form.method.toUpperCase()).toBe('POST');
+    expect(form.action).toBe('https://webpay3gint.transbank.cl/webpayserver/initTransaction');
+    expect(new FormData(form).get('token_ws')).toBe('abc');
+    form.remove();
+  });
+
+  it('explains a rejected payment and offers to retry', async () => {
+    mockServer({
+      'GET /api/auth/session': SESSION,
+      'GET /api/orders/UTA-2026-000001': order({
+        payment: {
+          status: 'rejected',
+          authorizationCode: null,
+          cardLast4: null,
+          paymentType: null,
+          installments: null,
+          confirmedAt: null,
+        },
+        paymentAttemptsLeft: 1,
+      }),
+    });
+    renderAt('/ordenes/UTA-2026-000001?pago=rechazado');
+    expect(await screen.findByRole('alert')).toHaveTextContent('no se realizó ningún cobro');
+    expect(screen.getByRole('button', { name: 'Pagar $89.000' })).toBeEnabled();
+    expect(screen.getByText(/Te queda un intento de pago/)).toBeInTheDocument();
+  });
+
+  it('offers the receipt of a paid order and no payment button', async () => {
+    mockServer({
+      'GET /api/auth/session': SESSION,
+      'GET /api/orders/UTA-2026-000001': order({
+        status: 'paid',
+        payment: {
+          status: 'authorized',
+          authorizationCode: '1213',
+          cardLast4: '6623',
+          paymentType: 'VN',
+          installments: 0,
+          confirmedAt: '2026-06-01T12:05:00.000Z',
+        },
+      }),
+    });
+    renderAt('/ordenes/UTA-2026-000001?pago=aprobado');
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Compra confirmada' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Descargar comprobante (PDF)' })).toHaveAttribute(
+      'href',
+      '/api/orders/UTA-2026-000001/receipt',
+    );
+    expect(screen.getByText(/Tarjeta terminada en 6623/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Pagar/ })).toBeNull();
+  });
+
+  it('tells the buyer when the order can no longer be paid', async () => {
+    mockServer({
+      'GET /api/auth/session': SESSION,
+      'GET /api/orders/UTA-2026-000001': order({ status: 'cancelled' }),
+    });
+    renderAt('/ordenes/UTA-2026-000001?pago=vencido');
+    expect(await screen.findByRole('alert')).toHaveTextContent('El plazo para pagar terminó');
+    expect(screen.getByText(/ya no se puede pagar/)).toBeInTheDocument();
   });
 });
 

@@ -35,6 +35,12 @@ import { CatalogService } from './modules/catalog/catalog.service.js';
 import { checkoutRoutes } from './modules/checkout/checkout.routes.js';
 import { CheckoutService } from './modules/checkout/checkout.service.js';
 import { healthRoutes, type ReadinessCheck } from './modules/health/health.routes.js';
+import { MockPaymentGateway } from './integrations/payment-gateway/mock.js';
+import { mockPaymentRoutes } from './modules/payments/mock-payment.routes.js';
+import { paymentsRoutes } from './modules/payments/payments.routes.js';
+import { PaymentsService } from './modules/payments/payments.service.js';
+import { ReceiptsService } from './modules/payments/receipts.service.js';
+import { RefundsService } from './modules/payments/refunds.service.js';
 import { legalRoutes } from './modules/legal/legal.routes.js';
 import { LegalService } from './modules/legal/legal.service.js';
 import { seoRoutes } from './modules/seo/seo.routes.js';
@@ -153,6 +159,26 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
     ...(deps.now ? { now: deps.now } : {}),
   });
 
+  const provider = {
+    name: env.SELLER_NAME,
+    rut: env.SELLER_RUT,
+    address: env.SELLER_ADDRESS,
+    email: env.SELLER_EMAIL,
+    phone: env.SELLER_PHONE,
+  };
+  const gateway = deps.integrations.paymentGateway;
+  const payments = new PaymentsService({
+    prisma: deps.prisma,
+    gateway,
+    mailer: deps.integrations.mailer,
+    audit: recorder,
+    cache,
+    logger: app.log,
+    returnUrl: `${webUrl}/api/payments/return`,
+    ...(env.UTA_ALERT_EMAIL ? { alertEmail: env.UTA_ALERT_EMAIL } : {}),
+    ...(deps.now ? { now: deps.now } : {}),
+  });
+
   await app.register(
     async (api) => {
       await api.register(healthRoutes, {
@@ -178,14 +204,30 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
       });
       await api.register(legalRoutes, {
         legal,
-        provider: {
-          name: env.SELLER_NAME,
-          rut: env.SELLER_RUT,
-          address: env.SELLER_ADDRESS,
-          email: env.SELLER_EMAIL,
-          phone: env.SELLER_PHONE,
-        },
+        provider,
       });
+      await api.register(paymentsRoutes, {
+        payments,
+        receipts: new ReceiptsService({
+          prisma: deps.prisma,
+          mailer: deps.integrations.mailer,
+          provider,
+          logger: app.log,
+          webUrl,
+        }),
+        refunds: new RefundsService({
+          prisma: deps.prisma,
+          gateway,
+          audit: recorder,
+          cache,
+          checkout,
+          ...(deps.now ? { now: deps.now } : {}),
+        }),
+        rateLimit: { max: env.CHECKOUT_RATE_LIMIT_MAX, timeWindowMs: env.RATE_LIMIT_WINDOW_MS },
+      });
+      if (gateway instanceof MockPaymentGateway) {
+        await api.register(mockPaymentRoutes, { gateway });
+      }
       await api.register(checkoutRoutes, {
         checkout,
         rateLimit: { max: env.CHECKOUT_RATE_LIMIT_MAX, timeWindowMs: env.RATE_LIMIT_WINDOW_MS },

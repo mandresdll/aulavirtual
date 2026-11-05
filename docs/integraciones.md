@@ -16,7 +16,7 @@ simulado** (regla 2 de [CLAUDE.md](../CLAUDE.md)). Código en `apps/api/src/inte
 
 | Puerto                 | Variable                       | Adaptadores              | Estado                                                     | Pregunta abierta |
 | ---------------------- | ------------------------------ | ------------------------ | ---------------------------------------------------------- | ---------------- |
-| `PaymentGateway`       | `PAYMENT_GATEWAY_DRIVER`       | `mock`, `webpay`         | Mock listo; Webpay en Fase 4                               | Q1               |
+| `PaymentGateway`       | `PAYMENT_GATEWAY_DRIVER`       | `mock`, `webpay`         | **Webpay listo** (falta probar con Transbank, ver abajo)   | Q1               |
 | `LmsGateway`           | `LMS_DRIVER`                   | `mock`, `moodle`         | Mock listo; Moodle en Fase 5                               | Q4               |
 | `IdentityProvider`     | `IDENTITY_DRIVER`              | `mock`, `oidc`           | **OIDC real listo** (falta registrar el cliente en el IdP) | Q2, Q3           |
 | `SgaGateway`           | `SGA_DRIVER`                   | `mock`, `http`           | HTTP listo sobre un **contrato supuesto**                  | Q7               |
@@ -29,6 +29,16 @@ simulado** (regla 2 de [CLAUDE.md](../CLAUDE.md)). Código en `apps/api/src/inte
 
 - **Operaciones**: `createTransaction`, `commit`, `getStatus`, `refund`.
 - **Supuesto (Q1)**: Transbank Webpay Plus con `transbank-sdk`, ambiente de integración.
+- **Adaptador real** (`payment-gateway/webpay.ts`, Fase 4):
+  - El comprador llega a Webpay por POST con `token_ws`. El dominio de Webpay está en
+    `form-action` de la CSP (`infra/web/security-headers.conf`).
+  - Vuelve a `{PUBLIC_WEB_URL}/api/payments/return` por GET o POST: con `token_ws` en el flujo
+    normal, con `TBK_TOKEN` si anuló y solo con `TBK_ORDEN_COMPRA` si se agotó el tiempo.
+  - Un 4xx de Transbank es definitivo; lo demás se considera reintentable.
+  - **Verificado solo contra un servidor falso** que imita a Transbank (`webpay.test.ts`,
+    mismo contrato que el mock). Falta correr `payment-gateway.contract.ts` y una compra real
+    en el ambiente de integración de Transbank; ahí se confirmarán en particular los
+    parámetros de retorno.
 - **Variables**: `WEBPAY_ENVIRONMENT`, `WEBPAY_COMMERCE_CODE`, `WEBPAY_API_KEY`.
 - **Reglas que ya modela el mock**: un segundo `commit` del mismo token falla (la plataforma
   debe ser idempotente por su cuenta, regla 9); las devoluciones no superan lo pagado; una
@@ -36,7 +46,8 @@ simulado** (regla 2 de [CLAUDE.md](../CLAUDE.md)). Código en `apps/api/src/inte
 - **Solo se guardan** los últimos 4 dígitos y los datos que entrega la pasarela; nunca datos de
   tarjeta (flujo de redirección).
 - **Por confirmar**: pasarela contratada, código de comercio y llaves, URL de retorno
-  autorizada, política de anulación (reversa el mismo día o anulación).
+  autorizada, política de anulación (reversa el mismo día o anulación), y hasta cuándo se
+  puede devolver una venta (Webpay limita el plazo de las anulaciones).
 
 ## Aula Virtual — `LmsGateway`
 

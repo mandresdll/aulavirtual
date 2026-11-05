@@ -93,6 +93,22 @@ export const routes: RouteObject[] = [
             },
           },
           {
+            path: 'ordenes',
+            lazy: async () => {
+              const [{ OrdersPage }, { RequirePermission }] = await Promise.all([
+                import('./pages/admin/OrdersPage'),
+                import('./pages/admin/AdminApp'),
+              ]);
+              return {
+                Component: () => (
+                  <RequirePermission permission="orders:refund">
+                    <OrdersPage />
+                  </RequirePermission>
+                ),
+              };
+            },
+          },
+          {
             path: 'legales',
             lazy: async () => {
               const [{ LegalAdminPage }, { RequirePermission }] = await Promise.all([

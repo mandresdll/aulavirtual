@@ -23,6 +23,7 @@ async function signInFromLoginPage(page: Page, name: string) {
 
 async function acceptLegalAndConfirm(page: Page, button: string) {
   const form = page.getByRole('form', { name: 'Datos de la compra' });
+  await expect(form.getByRole('checkbox')).toHaveCount(4);
   for (const box of await form.getByRole('checkbox').all()) await box.check();
   await form.getByRole('button', { name: button }).click();
 }

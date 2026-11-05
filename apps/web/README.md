@@ -3,6 +3,16 @@
 SPA React + TypeScript (Vite) con el sitio público, el área del comprador y el panel de
 administración (`/admin`, cargado en un chunk aparte).
 
+## Requisitos que cubre (Fase 4)
+
+- **RF-03 Pago**:
+  - `/ordenes/:numero` tiene el botón «Pagar», que lleva a la pasarela (`goToGateway`, por POST
+    si la pasarela lo exige).
+  - Al volver muestra el resultado (`?pago=`) y, mientras se confirma, se actualiza sola.
+  - Con la orden pagada ofrece el comprobante PDF.
+  - `/admin/ordenes` busca una orden por número y permite devolver, con confirmación
+    (administración y finanzas).
+
 ## Requisitos que cubre (Fase 3)
 
 - **RF-03 Carrito y checkout**:

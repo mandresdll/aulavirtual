@@ -67,6 +67,8 @@ enum OrderStatus {
 
 enum PaymentStatus {
   created
+  /// El servidor está confirmando con la pasarela: bloquea el vencimiento de la orden.
+  confirming
   authorized
   rejected
   aborted
@@ -389,6 +391,8 @@ model Order {
   idempotencyKey  String?           @unique @map("idempotency_key") @db.VarChar(100)
   expiresAt       DateTime?         @map("expires_at") @db.Timestamptz(3)
   paidAt          DateTime?         @map("paid_at") @db.Timestamptz(3)
+  /// Cuándo se envió el correo con el comprobante; `null` lo deja pendiente para el worker.
+  receiptSentAt   DateTime?         @map("receipt_sent_at") @db.Timestamptz(3)
   createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 

@@ -5,6 +5,8 @@ import {
   OrderSummarySchema,
   ProviderInfoSchema,
   QuoteSchema,
+  StartPaymentResponseSchema,
+  type StartPaymentResponse,
 } from '@plataforma/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { z } from 'zod';
@@ -55,5 +57,34 @@ export function useOrder(number: string | undefined) {
     queryKey: ['orders', number],
     queryFn: () => apiFetch(`/api/orders/${number}`, OrderSummarySchema),
     enabled: number !== undefined,
+    // Mientras el pago se confirma, el resultado llega solo.
+    refetchInterval: (query) =>
+      query.state.data?.payment?.status === 'confirming' ? 3_000 : false,
   });
+}
+
+export function useStartPayment(number: string) {
+  return useMutation({
+    mutationFn: () => apiSend(`/api/orders/${number}/pay`, 'POST', StartPaymentResponseSchema),
+  });
+}
+
+/** Lleva al comprador a la pasarela: Webpay exige un POST con el token. */
+export function goToGateway({ redirectUrl, formFields }: StartPaymentResponse) {
+  if (!formFields) {
+    window.location.assign(redirectUrl);
+    return;
+  }
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = redirectUrl;
+  for (const [name, value] of Object.entries(formFields)) {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = name;
+    input.value = value;
+    form.append(input);
+  }
+  document.body.append(form);
+  form.submit();
 }

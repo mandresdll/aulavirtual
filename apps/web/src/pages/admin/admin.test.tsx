@@ -11,6 +11,8 @@ import { AdminLayout, RequirePermission } from './AdminApp';
 import { AdminHomePage } from './AdminHomePage';
 import { AreasPage } from './AreasPage';
 import { AuditPage } from './AuditPage';
+import { LegalAdminPage } from './LegalAdminPage';
+import { OrdersPage } from './OrdersPage';
 import { mockServer } from '../../test-server';
 
 /**
@@ -30,6 +32,8 @@ const testRoutes: RouteObject[] = [
         children: [
           { index: true, element: <AdminHomePage /> },
           { path: 'areas', element: <AreasPage /> },
+          { path: 'ordenes', element: <OrdersPage /> },
+          { path: 'legales', element: <LegalAdminPage /> },
           {
             path: 'auditoria',
             element: (
@@ -200,6 +204,116 @@ describe('areas page', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'No se puede eliminar el área porque tiene cursos.',
     );
+  });
+});
+
+describe('legal texts page', () => {
+  it('asks for confirmation before publishing a version that cannot be changed', async () => {
+    const calls = mockServer({
+      'GET /api/auth/session': sessionAs(['uta_admin'], 'Administración UTA'),
+      'GET /api/admin/legal': { items: [] },
+      'POST /api/admin/legal': ({ body }: { body: unknown }) => ({
+        status: 201,
+        body: {
+          ...(body as object),
+          id: 'l1',
+          contentSha256: 'a'.repeat(64),
+          current: true,
+          createdAt: '2026-06-01T12:00:00.000Z',
+        },
+      }),
+    });
+    renderAt('/admin/legales');
+    await userEvent.click(await screen.findByRole('button', { name: 'Nueva versión' }));
+    const form = screen.getByRole('form', { name: 'Nueva versión de texto legal' });
+    await userEvent.type(within(form).getByLabelText('Versión'), '2026.1');
+    await userEvent.type(within(form).getByLabelText('Título'), 'Términos');
+    await userEvent.type(within(form).getByLabelText('Contenido'), 'Texto legal');
+    await userEvent.click(within(form).getByRole('button', { name: 'Publicar versión' }));
+
+    const dialog = await screen.findByRole('alertdialog');
+    expect(dialog).toHaveTextContent('¿Publicar la versión 2026.1?');
+    expect(calls.some((call) => call.method === 'POST')).toBe(false);
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Publicar' }));
+    expect(await screen.findByText(/Se publicó la versión 2026.1/)).toBeInTheDocument();
+    expect(calls.find((call) => call.method === 'POST')?.body).toMatchObject({
+      type: 'terms',
+      version: '2026.1',
+    });
+  });
+});
+
+describe('orders page', () => {
+  const adminOrder = (overrides: Record<string, unknown> = {}) => ({
+    number: 'UTA-2026-000001',
+    status: 'paid',
+    lines: [
+      {
+        editionId: 'e1',
+        courseTitle: 'Excel para la gestión',
+        editionCode: 'XLS-1',
+        unitPriceClp: 45_000,
+        discountClp: 0,
+        totalClp: 45_000,
+        taxTreatment: 'exempt',
+      },
+    ],
+    subtotalClp: 45_000,
+    discountClp: 0,
+    totalClp: 45_000,
+    couponCode: null,
+    documentType: 'receipt',
+    expiresAt: null,
+    createdAt: '2026-06-01T12:00:00.000Z',
+    payment: null,
+    paymentAttemptsLeft: 3,
+    buyer: { name: 'Estudiante', email: 'e@example.com' },
+    payments: [],
+    refunds: [],
+    history: [],
+    refundableClp: 45_000,
+    ...overrides,
+  });
+
+  it('refunds with a reason, after confirming, sending an idempotency key', async () => {
+    const calls = mockServer({
+      'GET /api/auth/session': sessionAs(['uta_finance'], 'Finanzas UTA'),
+      'GET /api/admin/orders/UTA-2026-000001': adminOrder(),
+      'POST /api/admin/orders/UTA-2026-000001/refunds': adminOrder({
+        status: 'partially_refunded',
+        refundableClp: 25_000,
+      }),
+    });
+    renderAt('/admin/ordenes?numero=UTA-2026-000001');
+    const form = await screen.findByRole('form', { name: 'Devolver' });
+    await userEvent.click(within(form).getByRole('button', { name: 'Devolver' }));
+    expect(await within(form).findByText(/Indica el motivo/)).toBeInTheDocument();
+
+    const amount = within(form).getByLabelText('Monto a devolver (CLP)');
+    await userEvent.clear(amount);
+    await userEvent.type(amount, '20000');
+    await userEvent.type(within(form).getByLabelText('Motivo'), 'Retracto del comprador');
+    await userEvent.click(within(form).getByRole('button', { name: 'Devolver' }));
+
+    const dialog = await screen.findByRole('alertdialog');
+    expect(dialog).toHaveTextContent('$20.000');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Devolver' }));
+
+    expect(await screen.findByText('Devolución realizada.')).toBeInTheDocument();
+    const post = calls.find((call) => call.method === 'POST');
+    expect(post?.body).toEqual({ amountClp: 20_000, reason: 'Retracto del comprador' });
+    expect(post?.headers.get('idempotency-key')).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('hides the refund form when nothing can be refunded', async () => {
+    mockServer({
+      'GET /api/auth/session': sessionAs(['uta_finance'], 'Finanzas UTA'),
+      'GET /api/admin/orders/UTA-2026-000001': adminOrder({ refundableClp: 0 }),
+    });
+    renderAt('/admin/ordenes?numero=UTA-2026-000001');
+    expect(await screen.findByText(/no tiene montos por devolver/)).toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'Devolver' })).toBeNull();
   });
 });
 

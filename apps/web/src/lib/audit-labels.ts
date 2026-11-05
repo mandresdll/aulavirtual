@@ -19,6 +19,20 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'edition.unpublish': 'Edición despublicada',
   'edition.duplicate': 'Edición duplicada',
   'edition.delete': 'Edición eliminada',
+  'coupon.create': 'Cupón creado',
+  'coupon.update': 'Cupón modificado',
+  'legal.publish': 'Texto legal publicado',
+  'order.create': 'Orden creada',
+  'order.expire': 'Orden vencida',
+  'payment.start': 'Pago iniciado',
+  'payment.authorized': 'Pago aprobado',
+  'payment.rejected': 'Pago rechazado',
+  'payment.aborted': 'Pago abandonado',
+  'payment.expired': 'Pago sobre orden vencida',
+  'payment.failed': 'Pago con error',
+  'payment.reversed': 'Pago reversado',
+  'refund.completed': 'Devolución realizada',
+  'refund.failed': 'Devolución fallida',
 };
 
 export const AUDIT_ENTITY_LABELS: Record<string, string> = {
@@ -27,4 +41,9 @@ export const AUDIT_ENTITY_LABELS: Record<string, string> = {
   instructor: 'Docente',
   course: 'Curso',
   course_edition: 'Edición',
+  coupon: 'Cupón',
+  legal_document: 'Texto legal',
+  order: 'Orden',
+  payment: 'Pago',
+  refund: 'Devolución',
 };
