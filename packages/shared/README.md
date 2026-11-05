@@ -20,6 +20,10 @@ Esquemas Zod, tipos y utilidades de dominio que comparten la API y la SPA.
   `CourseInputSchema`, `EditionInputSchema` con reglas de fechas, nota y perfiles) y de la
   auditoría (`AuditQuerySchema`, `AuditLogEntrySchema`). Los usan los formularios de la SPA y
   la validación de la API.
+- **RF-02** (`api/diffusion.ts`): interesados, novedades, `LEAD_CONSENT`, `parseUtm` y
+  `buildUtmLink`.
+- **RF-08 / RF-09** (`api/sales.ts`): ventas, documentos, conciliación y reportes. Permisos
+  `sales:manage`, `reports:read` y `diffusion:manage`.
 - **RF-06** (`api/certificates.ts`): `VerificationSchema`, `MyCoursesSchema`, esquemas del panel
   de certificados y permiso `certificates:manage`.
 - **RF-03 / RF-04 / RF-11** (`api/commerce.ts`):

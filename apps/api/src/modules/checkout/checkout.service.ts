@@ -8,7 +8,7 @@ import {
   type Quote,
   type QuoteLine,
 } from '@plataforma/shared';
-import { Prisma, type PrismaClient } from '@prisma/client';
+import { Prisma, type Lead, type PrismaClient } from '@prisma/client';
 import type { Cache } from '../../infra/cache.js';
 import { AppError } from '../../lib/errors.js';
 import type { AuditRecorder } from '../../plugins/audit.js';
@@ -423,6 +423,9 @@ export class CheckoutService {
     const number = orderNumber(now.getUTCFullYear(), sequence);
     const editionById = new Map(availability.map(({ edition }) => [edition.id, edition]));
 
+    const lead = await this.leadFor(tx, userId);
+    const utm = input.utm ?? leadUtm(lead);
+
     const order = await tx.order.create({
       data: {
         number,
@@ -439,11 +442,12 @@ export class CheckoutService {
         legalHash: acceptanceHash(legalDocs),
         legalAcceptedIp: actor.ip ?? null,
         legalAcceptedAt: now,
-        utmSource: input.utm?.source ?? null,
-        utmMedium: input.utm?.medium ?? null,
-        utmCampaign: input.utm?.campaign ?? null,
-        utmTerm: input.utm?.term ?? null,
-        utmContent: input.utm?.content ?? null,
+        utmSource: utm?.source ?? null,
+        utmMedium: utm?.medium ?? null,
+        utmCampaign: utm?.campaign ?? null,
+        utmTerm: utm?.term ?? null,
+        utmContent: utm?.content ?? null,
+        leadId: lead?.id ?? null,
         idempotencyKey,
         expiresAt,
         paidAt: free ? now : null,
@@ -539,6 +543,16 @@ export class CheckoutService {
     );
 
     return { number, editionIds };
+  }
+
+  /** Último interesado con el correo del comprador: enlaza la orden con su campaña (RF-02). */
+  private async leadFor(tx: Prisma.TransactionClient, userId: string) {
+    const user = await tx.user.findUnique({ where: { id: userId }, select: { email: true } });
+    if (!user) return null;
+    return tx.lead.findFirst({
+      where: { email: user.email.toLowerCase() },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   private async findByKey(key: string, userId: string): Promise<OrderSummary | null> {
@@ -660,6 +674,17 @@ export class CheckoutService {
     }
     return expired;
   }
+}
+
+function leadUtm(lead: Lead | null): CreateOrder['utm'] {
+  if (!lead) return undefined;
+  return {
+    ...(lead.utmSource ? { source: lead.utmSource } : {}),
+    ...(lead.utmMedium ? { medium: lead.utmMedium } : {}),
+    ...(lead.utmCampaign ? { campaign: lead.utmCampaign } : {}),
+    ...(lead.utmTerm ? { term: lead.utmTerm } : {}),
+    ...(lead.utmContent ? { content: lead.utmContent } : {}),
+  };
 }
 
 function toQuoteLine(

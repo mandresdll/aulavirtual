@@ -1,24 +1,29 @@
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { DISPLAY_TIME_ZONE } from '@plataforma/shared';
 import { Worker } from 'bullmq';
 import pino from 'pino';
-import { ConfigError, parseEnv } from './config/env.js';
+import { ConfigError, DOCUMENT_COLUMN_KEYS, parseEnv } from './config/env.js';
 import { buildLoggerOptions } from './config/logger.js';
 import { NoCache } from './infra/cache.js';
 import { createPrismaClient } from './infra/database.js';
 import { createQueueConnection } from './infra/redis.js';
 import { CertificatesService } from './modules/certificates/certificates.service.js';
 import { CheckoutService } from './modules/checkout/checkout.service.js';
+import { CampaignsService } from './modules/diffusion/campaigns.service.js';
 import { createIntegrations } from './integrations/index.js';
 import { EnrollmentService } from './modules/enrollment/enrollment.service.js';
 import { WaitlistService } from './modules/enrollment/waitlist.service.js';
 import { LegalService } from './modules/legal/legal.service.js';
 import { PaymentsService } from './modules/payments/payments.service.js';
 import { ReceiptsService } from './modules/payments/receipts.service.js';
+import { DocumentsService } from './modules/sales/documents.service.js';
+import { ReconciliationService } from './modules/sales/reconciliation.service.js';
 import { PrismaAuditRecorder } from './plugins/audit.js';
 import { createCertificatesProcessor } from './jobs/processors/certificates.js';
 import { createCheckoutProcessor } from './jobs/processors/checkout.js';
 import { createEnrollmentProcessor } from './jobs/processors/enrollment.js';
+import { createDiffusionProcessor, createSalesProcessor } from './jobs/processors/sales.js';
 import { createSystemProcessor } from './jobs/processors/system.js';
 import { QUEUE_NAMES, createQueue } from './jobs/queues.js';
 
@@ -30,6 +35,8 @@ if (process.env.NODE_ENV !== 'production' && existsSync(rootEnvFile)) {
 const HEARTBEAT_EVERY_MS = 5 * 60_000;
 const CHECKOUT_JOBS_EVERY_MS = 60_000;
 const RESULTS_SYNC_EVERY_MS = 60 * 60_000;
+/** La conciliación revisa el día anterior, cada mañana en hora de Punta Arenas. */
+const RECONCILIATION_SCHEDULE = { pattern: '0 6 * * *', tz: DISPLAY_TIME_ZONE };
 
 async function main() {
   const env = parseEnv(process.env);
@@ -148,8 +155,65 @@ async function main() {
     );
   }
 
+  const documents = new DocumentsService({
+    prisma,
+    gateway: integrations.invoicing,
+    audit,
+    logger,
+    columns: env.INVOICING_EXPORT_COLUMNS ?? DOCUMENT_COLUMN_KEYS,
+    vatPercent: env.VAT_RATE_PERCENT,
+  });
+  const reconciliation = new ReconciliationService({
+    prisma,
+    gateway: integrations.paymentGateway,
+    mailer: integrations.mailer,
+    audit,
+    logger,
+    ...(env.UTA_ALERT_EMAIL ? { alertEmail: env.UTA_ALERT_EMAIL } : {}),
+  });
+  const salesQueue = createQueue(QUEUE_NAMES.sales, connection);
+  await salesQueue.upsertJobScheduler('reconcile-payments', RECONCILIATION_SCHEDULE, {
+    name: 'reconcile-payments',
+    opts: { attempts: 1 },
+  });
+  await salesQueue.upsertJobScheduler(
+    'submit-documents',
+    { every: CHECKOUT_JOBS_EVERY_MS },
+    { name: 'submit-documents', opts: { attempts: 1 } },
+  );
+
+  const campaigns = new CampaignsService({
+    prisma,
+    mailer: integrations.mailer,
+    audit,
+    logger,
+    webUrl,
+  });
+  const diffusionQueue = createQueue(QUEUE_NAMES.diffusion, connection);
+  await diffusionQueue.upsertJobScheduler(
+    'send-campaigns',
+    { every: CHECKOUT_JOBS_EVERY_MS },
+    { name: 'send-campaigns', opts: { attempts: 1 } },
+  );
+
   const workers = [
     new Worker(QUEUE_NAMES.system, createSystemProcessor(logger), { connection }),
+    new Worker(
+      QUEUE_NAMES.sales,
+      createSalesProcessor(
+        {
+          reconcilePayments: () => reconciliation.run(),
+          submitDocuments: () => documents.submitPending(),
+        },
+        logger,
+      ),
+      { connection },
+    ),
+    new Worker(
+      QUEUE_NAMES.diffusion,
+      createDiffusionProcessor({ sendCampaigns: () => campaigns.sendPending() }),
+      { connection },
+    ),
     new Worker(
       QUEUE_NAMES.certificates,
       createCertificatesProcessor(
@@ -208,6 +272,8 @@ async function main() {
       checkoutQueue.close(),
       enrollmentQueue.close(),
       certificatesQueue.close(),
+      salesQueue.close(),
+      diffusionQueue.close(),
     ]);
     await prisma.$disconnect();
     connection.disconnect();

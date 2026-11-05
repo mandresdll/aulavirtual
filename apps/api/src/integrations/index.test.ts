@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { testEnv } from '../test-support.js';
-import { AdapterNotImplementedError } from './errors.js';
 import { createIntegrations } from './index.js';
 
 describe('createIntegrations', () => {
@@ -35,10 +34,17 @@ describe('createIntegrations', () => {
     expect(integrations.mailer.provider).toBe('smtp');
   });
 
-  it('real adapters not yet implemented fail loudly instead of pretending to work', async () => {
-    const integrations = createIntegrations(testEnv({ INVOICING_DRIVER: 'export' }));
-    await expect(integrations.invoicing.getStatus('x')).rejects.toBeInstanceOf(
-      AdapterNotImplementedError,
+  it('delivers documents by file only with the export driver', () => {
+    const exported = createIntegrations(testEnv({ INVOICING_DRIVER: 'export' }));
+    expect(exported.invoicing.deliversByFile).toBe(true);
+    const http = createIntegrations(
+      testEnv({
+        INVOICING_DRIVER: 'http',
+        INVOICING_API_URL: 'https://boletas.example.cl',
+        INVOICING_API_TOKEN: 'token',
+      }),
     );
+    expect(http.invoicing.provider).toBe('http');
+    expect(http.invoicing.deliversByFile).toBe(false);
   });
 });

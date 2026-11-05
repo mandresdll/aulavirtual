@@ -1,5 +1,25 @@
 import { z } from 'zod';
 
+/** Columnas posibles del archivo contable (Q6); `INVOICING_EXPORT_COLUMNS` elige y ordena. */
+export const DOCUMENT_COLUMN_KEYS = [
+  'folio',
+  'tipo',
+  'fecha',
+  'orden',
+  'rut',
+  'razon_social',
+  'giro',
+  'direccion',
+  'correo',
+  'detalle',
+  'neto',
+  'iva',
+  'exento',
+  'total',
+  'devuelto',
+  'estado',
+] as const;
+
 const appEnvs = ['development', 'test', 'staging', 'production'] as const;
 const logLevels = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'] as const;
 
@@ -53,6 +73,8 @@ export const EnvSchema = z
     WAITLIST_OFFER_HOURS: positiveInt.max(168).default(24),
     COURSE_RESULT_GRACE_DAYS: positiveInt.max(365).default(30),
     VERIFY_RATE_LIMIT_MAX: positiveInt.default(30),
+    LEADS_RATE_LIMIT_MAX: positiveInt.default(10),
+    PAGE_VIEW_RATE_LIMIT_MAX: positiveInt.default(60),
 
     SELLER_NAME: z
       .string()
@@ -102,6 +124,8 @@ export const EnvSchema = z
     INVOICING_DRIVER: z.enum(['mock', 'export', 'http']).default('mock'),
     INVOICING_API_URL: optionalUrl,
     INVOICING_API_TOKEN: optionalString,
+    INVOICING_EXPORT_COLUMNS: csv.pipe(z.array(z.enum(DOCUMENT_COLUMN_KEYS)).min(1)).optional(),
+    VAT_RATE_PERCENT: z.coerce.number().min(0).max(100).default(19),
 
     AI_ASSISTANT_DRIVER: z.enum(['disabled']).default('disabled'),
   })

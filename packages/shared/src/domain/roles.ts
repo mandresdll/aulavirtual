@@ -36,6 +36,12 @@ export const PERMISSIONS = {
   'enrollments:manage': ['uta_admin', 'uta_editor'],
   /** Reemitir y revocar certificados, y decidir cursos sin nota (RF-06). */
   'certificates:manage': ['uta_admin', 'uta_editor'],
+  /** Ventas, documentos y conciliación (RF-08). */
+  'sales:manage': ['uta_admin', 'uta_finance'],
+  /** Reportes y sus descargas (RF-09). */
+  'reports:read': ['uta_admin', 'uta_finance', 'uta_reports'],
+  /** Interesados, novedades y enlaces con UTM (RF-02). */
+  'diffusion:manage': ['uta_admin', 'uta_editor'],
   /** Textos legales versionados (RF-11). */
   'legal:manage': ['uta_admin'],
   /** Vista de auditoría de solo lectura (RF-12). */

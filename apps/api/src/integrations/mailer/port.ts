@@ -4,6 +4,8 @@ export interface MailMessage {
   html: string;
   text: string;
   replyTo?: string;
+  /** Cabeceras adicionales, p. ej. `List-Unsubscribe`. */
+  headers?: Record<string, string>;
   attachments?: { filename: string; content: Buffer; contentType: string }[];
 }
 
