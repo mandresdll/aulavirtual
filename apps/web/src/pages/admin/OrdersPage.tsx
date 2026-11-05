@@ -24,6 +24,7 @@ import {
   Field,
   inputClass,
   primaryButton,
+  ScrollRegion,
   secondaryButton,
 } from '../../components/admin/ui';
 import { Pagination } from '../../components/Pagination';
@@ -193,7 +194,7 @@ function SalesList() {
             <p className="text-ink-muted">No hay ventas con estos filtros.</p>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              <ScrollRegion label="Tabla de ventas">
                 <table className="w-full text-left text-sm">
                   <caption className="sr-only">Ventas</caption>
                   <thead>
@@ -236,7 +237,7 @@ function SalesList() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollRegion>
               <Pagination
                 page={sales.data.page}
                 totalPages={sales.data.totalPages}

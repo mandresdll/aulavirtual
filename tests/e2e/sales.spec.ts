@@ -20,6 +20,14 @@ async function expectAccessible(page: Page) {
   expect(results.violations).toEqual([]);
 }
 
+/** En pantalla angosta las tablas se desbordan: así se revisa su zona desplazable. */
+async function expectAccessibleWhenNarrow(page: Page) {
+  const size = page.viewportSize();
+  await page.setViewportSize({ width: 480, height: 800 });
+  await expectAccessible(page);
+  if (size) await page.setViewportSize(size);
+}
+
 async function signIn(page: Page, name: string, path: string) {
   await page.goto(`/ingresar?returnTo=${encodeURIComponent(path)}`);
   await page.getByRole('link', { name: 'Ingresar con cuenta institucional' }).click();
@@ -58,6 +66,7 @@ test('a visitor from a campaign leaves their email and buys, and the panel sees 
   await expect(row).toContainText('e2e');
   await expect(row.getByRole('cell').last()).toHaveText('1');
   await expectAccessible(page);
+  await expectAccessibleWhenNarrow(page);
 
   const [download] = await Promise.all([
     page.waitForEvent('download'),
@@ -71,6 +80,7 @@ test('finance lists the sale, exports documents and reconciles', async ({ page }
   await expect(page.getByRole('heading', { level: 2, name: 'Ventas' })).toBeVisible();
   await expect(page.getByRole('table', { name: 'Ventas' })).toBeVisible();
   await expectAccessible(page);
+  await expectAccessibleWhenNarrow(page);
 
   await page.goto('/admin/documentos');
   await expect(page.getByRole('heading', { level: 1, name: 'Documentos' })).toBeVisible();
@@ -100,6 +110,7 @@ test('the diffusion team writes a campaign and the link unsubscribes', async ({ 
   await page.getByRole('alertdialog').getByRole('button', { name: 'Enviar' }).click();
   await expect(page.getByText('Novedad en envío.')).toBeVisible();
   await expect(page.getByRole('cell', { name: `${CAMPAIGN}@example.com` })).toBeVisible();
+  await expectAccessibleWhenNarrow(page);
 
   await page.goto(`/baja/${'0'.repeat(64)}`);
   await expect(page.getByRole('alert')).toContainText('no es válido');

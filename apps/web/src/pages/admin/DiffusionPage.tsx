@@ -18,6 +18,7 @@ import {
   Field,
   inputClass,
   primaryButton,
+  ScrollRegion,
   secondaryButton,
   smallButton,
 } from '../../components/admin/ui';
@@ -262,7 +263,7 @@ function Leads() {
           <p className="mt-3 text-ink-muted">No hay interesados.</p>
         ) : (
           <>
-            <div className="mt-3 overflow-x-auto">
+            <ScrollRegion label="Tabla de interesados" className="mt-3">
               <table className="w-full text-left text-sm">
                 <caption className="sr-only">Interesados con su consentimiento</caption>
                 <thead>
@@ -298,7 +299,7 @@ function Leads() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollRegion>
             <Pagination
               page={leads.data.page}
               totalPages={leads.data.totalPages}

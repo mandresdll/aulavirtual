@@ -11,7 +11,7 @@ import {
   type ReportRow,
 } from '@plataforma/shared';
 import { useSearchParams } from 'react-router';
-import { inputClass, secondaryButton } from '../../components/admin/ui';
+import { inputClass, ScrollRegion, secondaryButton } from '../../components/admin/ui';
 import { ErrorMessage, LoadingMessage } from '../../components/QueryState';
 import { toQueryString, useReport } from '../../lib/sales';
 import { useDocumentTitle } from '../../lib/use-document-title';
@@ -227,7 +227,7 @@ const headerCell = 'py-2 pr-3 font-semibold';
 
 function SummaryTable({ rows, group }: { rows: ReportRow[]; group: ReportGroup }) {
   return (
-    <div className="mt-4 overflow-x-auto">
+    <ScrollRegion label="Detalle del reporte" className="mt-4">
       <table className="w-full text-left text-sm">
         <caption className="sr-only">Detalle por {REPORT_GROUP_LABELS[group]}</caption>
         <thead>
@@ -271,13 +271,13 @@ function SummaryTable({ rows, group }: { rows: ReportRow[]; group: ReportGroup }
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }
 
 function ConversionTable({ rows }: { rows: ConversionRow[] }) {
   return (
-    <div className="mt-3 overflow-x-auto">
+    <ScrollRegion label="Conversión por campaña" className="mt-3">
       <table className="w-full text-left text-sm">
         <caption className="sr-only">Visitas, interesados, órdenes y pagos por campaña</caption>
         <thead>
@@ -310,6 +310,6 @@ function ConversionTable({ rows }: { rows: ConversionRow[] }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }

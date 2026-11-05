@@ -142,6 +142,24 @@ const statusColors: Record<string, string> = {
   cancelled: 'bg-red-100 text-red-900',
 };
 
+/** Tabla ancha: la zona desplazable recibe foco para moverla con el teclado (WCAG 2.1.1). */
+export function ScrollRegion({
+  label,
+  className = '',
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- axe: scrollable-region-focusable
+    <div role="region" aria-label={label} tabIndex={0} className={`overflow-x-auto ${className}`}>
+      {children}
+    </div>
+  );
+}
+
 export function StatusBadge({ status, label }: { status: string; label: string }) {
   return (
     <span
