@@ -29,6 +29,12 @@ const CARDS: { to: string; title: string; text: string; permission: Permission }
     permission: 'coupons:manage',
   },
   {
+    to: '/admin/ordenes',
+    title: 'Órdenes',
+    text: 'Consulta órdenes y sus pagos, y realiza devoluciones.',
+    permission: 'orders:refund',
+  },
+  {
     to: '/admin/legales',
     title: 'Textos legales',
     text: 'Términos, privacidad, retracto y devoluciones, con versiones.',
