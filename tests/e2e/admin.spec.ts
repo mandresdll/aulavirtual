@@ -151,7 +151,8 @@ test('an editor manages a course from creation to the public catalog', async ({ 
   await page.getByLabel(`Código de la copia de ${code}`).fill(`${code}-2`);
   await page.getByRole('button', { name: 'Duplicar', exact: true }).click();
   await expectStatus(page, 'Se creó la copia como borrador');
-  await expect(page.getByRole('cell', { name: `${code}-2`, exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: new RegExp(`^${code}-2`) })).toBeVisible();
+  await expect(page.getByText('Sin curso del Aula Virtual').first()).toBeVisible();
 
   await page.getByRole('button', { name: 'Archivar' }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Archivar curso' }).click();

@@ -24,14 +24,14 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: /(admin|checkout|payments)\.spec\.ts/,
+      testIgnore: /(admin|checkout|enrollment|payments)\.spec\.ts/,
     },
     // El panel publica cursos y el checkout reserva cupos: corren después del catálogo, que
     // verifica los cupos y conteos del seed.
     {
       name: 'stateful',
       use: { ...devices['Desktop Chrome'] },
-      testMatch: /(admin|checkout|payments)\.spec\.ts/,
+      testMatch: /(admin|checkout|enrollment|payments)\.spec\.ts/,
       dependencies: ['chromium'],
     },
   ],

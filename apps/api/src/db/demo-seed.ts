@@ -363,6 +363,8 @@ export async function seedDemoData(
           capacity: edition.capacity,
           priceClp: edition.priceClp,
           taxTreatment: edition.taxTreatment ?? 'exempt',
+          // Curso del Aula Virtual simulada: sin él no se puede matricular.
+          moodleCourseId: '1001',
           freeForCommunity: edition.freeForCommunity ?? false,
           communityProfiles: edition.freeForCommunity
             ? (['student', 'teacher', 'staff'] as const).slice()
