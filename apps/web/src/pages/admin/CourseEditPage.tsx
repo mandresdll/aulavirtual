@@ -9,6 +9,7 @@ import {
 } from '@plataforma/shared';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { CoursePreview } from '../../components/admin/CoursePreview';
 import { Link, useNavigate, useParams } from 'react-router';
 import { z } from 'zod';
 import {
@@ -95,6 +96,7 @@ function CourseEditor({ course }: { course: AdminCourseDetail | undefined }) {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isDirty },
     reset,
   } = useForm<CourseForm, unknown, CourseInput>({
@@ -252,7 +254,12 @@ function CourseEditor({ course }: { course: AdminCourseDetail | undefined }) {
             <textarea {...props} rows={2} className={inputClass} {...register('summary')} />
           )}
         </Field>
-        <Field label="Descripción" error={errors.description} className="sm:col-span-2">
+        <Field
+          label="Descripción"
+          hint="Admite formato: ## para títulos, - para listas, **negrita**. No se admite HTML."
+          error={errors.description}
+          className="sm:col-span-2"
+        >
           {(props) => (
             <textarea {...props} rows={6} className={inputClass} {...register('description')} />
           )}
@@ -328,6 +335,15 @@ function CourseEditor({ course }: { course: AdminCourseDetail | undefined }) {
           <input type="checkbox" {...register('featured')} />
           Destacar en la portada
         </label>
+
+        <CoursePreview
+          title={watch('title')}
+          summary={watch('summary')}
+          description={watch('description')}
+          objectivesText={watch('objectivesText')}
+          contentsText={watch('contentsText')}
+          requirements={String(watch('requirements') ?? '')}
+        />
 
         <div className="sm:col-span-2">
           <Feedback error={save.error} />
