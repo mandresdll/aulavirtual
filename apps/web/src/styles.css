@@ -1,9 +1,8 @@
 @import 'tailwindcss';
 
 /*
- * Tokens de identidad gráfica. Valores PROVISORIOS basados en el burdeo institucional (Q8):
- * se reemplazan con la guía oficial del SGA y, en fases siguientes, desde la configuración
- * del panel (tabla `settings`) sobrescribiendo estas variables en :root.
+ * Tokens de identidad gráfica. Valores PROVISORIOS basados en el burdeo institucional (Q8).
+ * El color principal se puede cambiar en /admin/configuracion, que sobrescribe estas variables.
  * Contraste verificado: texto blanco sobre --brand-700 y --brand-800 supera 4.5:1 (WCAG AA).
  */
 :root {

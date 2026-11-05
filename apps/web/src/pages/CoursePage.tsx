@@ -10,6 +10,7 @@ import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import { EditionActions } from '../components/EditionActions';
 import { LeadForm } from '../components/LeadForm';
+import { Markdown } from '../components/Markdown';
 import { SeatsBadge } from '../components/EditionStatus';
 import { ErrorMessage, LoadingMessage } from '../components/QueryState';
 import { ApiError } from '../lib/api';
@@ -154,7 +155,7 @@ function CourseView({ course }: { course: CourseDetail }) {
       <div className="mx-auto grid max-w-6xl gap-8 px-4 pb-12 lg:grid-cols-[3fr_2fr]">
         <div>
           <Section id="descripcion" title="Descripción">
-            <p className="whitespace-pre-line">{course.description}</p>
+            <Markdown source={course.description} />
           </Section>
           {course.objectives.length > 0 && (
             <Section id="objetivos" title="Objetivos">

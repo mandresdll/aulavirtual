@@ -71,6 +71,12 @@ const CARDS: { to: string; title: string; text: string; permission: Permission }
     permission: 'diffusion:manage',
   },
   {
+    to: '/admin/configuracion',
+    title: 'Configuración',
+    text: 'Textos de la portada, aviso general y color del sitio.',
+    permission: 'settings:manage',
+  },
+  {
     to: '/admin/privacidad',
     title: 'Datos personales',
     text: 'Solicitudes de acceso y supresión de los titulares.',

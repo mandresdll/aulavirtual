@@ -60,7 +60,7 @@ ese valor.
 
 ## Actualización
 
-1. Respalda la base (ver abajo).
+1. Respalda la base ([respaldo-restauracion.md](respaldo-restauracion.md)).
 2. Actualiza y reconstruye:
 
    ```bash
@@ -74,49 +74,12 @@ ese valor.
 
 1. Vuelve a la etiqueta anterior con `git checkout <etiqueta>` y repite el `up -d --build`.
 2. Las migraciones no se revierten solas. Si la versión nueva cambió la base de forma incompatible,
-   restaura el respaldo previo siguiendo el procedimiento de abajo.
+   restaura el respaldo previo ([respaldo-restauracion.md](respaldo-restauracion.md)).
 
 ## Respaldos
 
-El servicio `backup` corre `pg_dump` cada día (`BACKUP_SCHEDULE`, en UTC) y conserva
-`BACKUP_RETENTION_DAYS` días en el volumen `backups`.
-
-- **Cópialos fuera del servidor.** Un respaldo en el mismo disco no sirve si se pierde el servidor.
-- **Cifrado:** con `BACKUP_PASSPHRASE` los archivos terminan en `.dump.enc`. Si se pierde esa clave,
-  no se pueden recuperar: guárdala fuera del servidor.
-- El CI restaura un respaldo en cada PR y compara los conteos de todas las tablas.
-
-Respaldo manual:
-
-```bash
-docker compose -f infra/docker-compose.yml -f infra/docker-compose.prod.yml -f infra/docker-compose.backup.yml exec backup backup.sh
-```
-
-### Restaurar
-
-`restore.sh` solo escribe en una base nueva, para no pisar datos por error.
-
-1. Detén lo que escribe en la base:
-
-   ```bash
-   docker compose -f infra/docker-compose.yml -f infra/docker-compose.prod.yml -f infra/docker-compose.backup.yml stop api worker
-   ```
-
-2. Restaura en una base nueva, indicando el archivo que quieres recuperar:
-
-   ```bash
-   docker compose -f infra/docker-compose.yml -f infra/docker-compose.prod.yml -f infra/docker-compose.backup.yml exec backup restore.sh /backups/plataforma-20270101T060000Z.dump plataforma_restaurada
-   ```
-
-3. Cambia `POSTGRES_DB=plataforma_restaurada` en `.env` y vuelve a levantar los servicios.
-4. Revisa `/api/ready`, una orden y un certificado conocidos. Conserva la base anterior hasta estar
-   seguro.
-
-Comprobar un respaldo sin tocar nada:
-
-```bash
-docker compose -f infra/docker-compose.yml -f infra/docker-compose.prod.yml -f infra/docker-compose.backup.yml exec backup check-restore.sh
-```
+El servicio `backup` respalda la base cada día. La configuración, la comprobación y la restauración
+están en [respaldo-restauracion.md](respaldo-restauracion.md).
 
 ## Registros
 

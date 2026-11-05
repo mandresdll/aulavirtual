@@ -2,6 +2,11 @@
 
 API REST (Fastify + Zod + Prisma) y worker de trabajos asíncronos (BullMQ).
 
+## Requisitos que cubre (Fase 9)
+
+- **RF-07 Configuración** (`src/modules/settings/`): `GET /api/settings` (público) y
+  `PUT /api/admin/settings` (`settings:manage`), en la tabla `settings`.
+
 ## Requisitos que cubre (Fase 8)
 
 - **SEG datos personales** (`src/modules/privacy/`): resumen, exportación y anonimización de un

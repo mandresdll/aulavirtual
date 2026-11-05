@@ -71,6 +71,7 @@ const EXPECTED: Record<string, Permission> = {
   'POST /api/admin/data-subjects/search': 'privacy:manage',
   'POST /api/admin/data-subjects/export': 'privacy:manage',
   'POST /api/admin/data-subjects/anonymize': 'privacy:manage',
+  'PUT /api/admin/settings': 'settings:manage',
   'GET /api/admin/certificates': 'certificates:manage',
   'POST /api/admin/certificates/{id}/reissue': 'certificates:manage',
   'POST /api/admin/certificates/{id}/revoke': 'certificates:manage',

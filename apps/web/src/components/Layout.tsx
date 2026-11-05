@@ -9,6 +9,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { useCart, useMergeLocalCart } from '../lib/cart';
 import { useProviderInfo } from '../lib/commerce';
 import { useLogout, useSession } from '../lib/session';
+import { useBrandColor, useSiteSettings } from '../lib/settings';
 import { captureUtm } from '../lib/utm';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -20,6 +21,8 @@ export function Layout() {
   const mainRef = useRef<HTMLElement>(null);
   const location = useLocation();
   const firstRender = useRef(true);
+  const { notice, brandColor } = useSiteSettings();
+  useBrandColor(brandColor);
   useMergeLocalCart();
   // Antes de que las páginas hijas lean las UTM de la visita.
   useMemo(() => captureUtm(location.search), [location.search]);
@@ -73,6 +76,8 @@ export function Layout() {
           </div>
         </div>
       </header>
+
+      {notice && <p className="bg-brand-100 px-4 py-2 text-center text-sm text-ink">{notice}</p>}
 
       <main id="contenido" ref={mainRef} tabIndex={-1} className="flex-1 focus:outline-none">
         <Outlet />

@@ -401,3 +401,12 @@ flowchart LR
 | Solicitudes de titulares por POST                  | El correo no debe quedar en URL, que terminan en registros intermedios.              |
 | `restore.sh` solo escribe en una base nueva        | Evita pisar datos en plena emergencia; la base anterior se conserva hasta validar.   |
 | Prueba de carga manual o al cambiar, no en cada PR | Tarda varios minutos y su resultado depende de la máquina del CI.                    |
+
+## Decisiones de la Fase 9
+
+| Decisión                                  | Motivo                                                                                    |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Descripción en Markdown sin HTML          | Da formato sin un editor pesado y reutiliza la sanitización de los textos legales.        |
+| Vista previa con los datos del formulario | Muestra lo que se está escribiendo, sin guardar ni exponer borradores por la API pública. |
+| El color se valida contra el texto blanco | Quien configura no puede romper el contraste AA del encabezado y los botones.             |
+| Sin subida de logo                        | Requiere almacenamiento de archivos y la identidad oficial aún no existe (Q8).            |

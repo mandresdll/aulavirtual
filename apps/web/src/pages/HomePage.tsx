@@ -2,24 +2,21 @@ import { Link } from 'react-router';
 import { CourseCard } from '../components/CourseCard';
 import { ErrorMessage, LoadingMessage } from '../components/QueryState';
 import { useAreas, useFeaturedCourses } from '../lib/catalog';
+import { useSiteSettings } from '../lib/settings';
 import { useDocumentTitle } from '../lib/use-document-title';
 
 export function HomePage() {
   useDocumentTitle();
   const featured = useFeaturedCourses();
   const areas = useAreas();
+  const { heroTitle, heroText } = useSiteSettings();
 
   return (
     <>
       <section className="bg-brand-50">
         <div className="mx-auto max-w-6xl px-4 py-12 sm:py-16">
-          <h1 className="text-3xl font-bold text-brand-800 sm:text-4xl">
-            Cursos de la Unidad de Tecnologías para el Aprendizaje
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg text-ink-muted">
-            Capacitación del CFT Estatal de Magallanes abierta a la comunidad: cursos en línea,
-            presenciales y mixtos, con certificación verificable.
-          </p>
+          <h1 className="text-3xl font-bold text-brand-800 sm:text-4xl">{heroTitle}</h1>
+          <p className="mt-4 max-w-2xl text-lg text-ink-muted">{heroText}</p>
           <Link
             to="/cursos"
             className="mt-6 inline-block rounded-md bg-brand-700 px-5 py-3 font-semibold text-white hover:bg-brand-800"

@@ -3,6 +3,12 @@
 SPA React + TypeScript (Vite) con el sitio público, el área del comprador y el panel de
 administración (`/admin`, cargado en un chunk aparte).
 
+## Requisitos que cubre (Fase 9)
+
+- **RF-07**: `/admin/configuracion` (textos, aviso y color), vista previa de la ficha y descripción
+  con formato seguro. El color reemplaza los tokens de `styles.css` en tiempo de ejecución.
+- **Capturas de los manuales**: `E2E_BASE_URL=http://localhost:8080 pnpm docs:capturas`.
+
 ## Requisitos que cubre (Fase 8)
 
 - **SEG datos personales**: `/admin/privacidad` para solicitudes de acceso y supresión.
