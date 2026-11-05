@@ -11,8 +11,9 @@ export interface RateLimitOptions {
 }
 
 /**
- * Límite global por IP. Las rutas sensibles (login, checkout, interés, verificación)
- * definen límites más estrictos con `config.rateLimit` en su propia ruta.
+ * Límite por usuario con sesión y por IP sin ella: en la red del CFT muchas personas salen por la
+ * misma IP y no deben agotar el límite entre sí. Las rutas sensibles (login, checkout, interés,
+ * verificación) definen límites más estrictos con `config.rateLimit` en su propia ruta.
  */
 export const rateLimitPlugin = fp<RateLimitOptions>(
   async (app: FastifyInstance, options) => {
@@ -21,6 +22,8 @@ export const rateLimitPlugin = fp<RateLimitOptions>(
       max: options.max,
       timeWindow: options.timeWindowMs,
       nameSpace: 'rate-limit:',
+      // La sesión ya está cargada: los hooks de la app corren antes que los de la ruta.
+      keyGenerator: (request) => (request.session ? `user:${request.session.subject}` : request.ip),
       // Si Redis cae, se atiende sin límite en vez de responder 500 a todo; /api/ready lo reporta.
       skipOnError: true,
       ...(options.redis ? { redis: options.redis } : {}),

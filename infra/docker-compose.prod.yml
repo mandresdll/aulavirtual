@@ -1,18 +1,61 @@
-# Producción. ESQUELETO: se completa en la Fase 8 (imágenes del registro, respaldo diario,
-# límites de recursos, rotación de logs). APP_ENV=production bloquea los adaptadores simulados.
+# Producción. APP_ENV=production bloquea los adaptadores simulados y permite indexar el sitio.
+# Límites de recursos provisionales: se ajustan al servidor del CFT (Q9). Ver docs/despliegue.md.
+x-logging: &logging
+  logging:
+    driver: json-file
+    options:
+      max-size: 20m
+      max-file: '5'
+
 services:
+  postgres:
+    <<: *logging
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+
+  redis:
+    <<: *logging
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+  migrate:
+    <<: *logging
+    environment:
+      APP_ENV: production
+
   api:
+    <<: *logging
     environment:
       APP_ENV: production
       # Solo producción permite que los buscadores indexen el sitio (robots.txt y meta robots).
       SEO_ALLOW_INDEXING: 'true'
     ports:
       - '127.0.0.1:3000:3000'
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1g
 
   worker:
+    <<: *logging
     environment:
       APP_ENV: production
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512m
 
   web:
+    <<: *logging
     ports:
       - '127.0.0.1:8080:8080'
+    deploy:
+      resources:
+        limits:
+          memory: 256m

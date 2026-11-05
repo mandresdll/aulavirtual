@@ -71,6 +71,12 @@ const CARDS: { to: string; title: string; text: string; permission: Permission }
     permission: 'diffusion:manage',
   },
   {
+    to: '/admin/privacidad',
+    title: 'Datos personales',
+    text: 'Solicitudes de acceso y supresión de los titulares.',
+    permission: 'privacy:manage',
+  },
+  {
     to: '/admin/legales',
     title: 'Textos legales',
     text: 'Términos, privacidad, retracto y devoluciones, con versiones.',

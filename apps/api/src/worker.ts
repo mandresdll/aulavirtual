@@ -11,6 +11,7 @@ import { createQueueConnection } from './infra/redis.js';
 import { CertificatesService } from './modules/certificates/certificates.service.js';
 import { CheckoutService } from './modules/checkout/checkout.service.js';
 import { CampaignsService } from './modules/diffusion/campaigns.service.js';
+import { LeadsService } from './modules/diffusion/leads.service.js';
 import { createIntegrations } from './integrations/index.js';
 import { EnrollmentService } from './modules/enrollment/enrollment.service.js';
 import { WaitlistService } from './modules/enrollment/waitlist.service.js';
@@ -37,6 +38,7 @@ const CHECKOUT_JOBS_EVERY_MS = 60_000;
 const RESULTS_SYNC_EVERY_MS = 60 * 60_000;
 /** La conciliación revisa el día anterior, cada mañana en hora de Punta Arenas. */
 const RECONCILIATION_SCHEDULE = { pattern: '0 6 * * *', tz: DISPLAY_TIME_ZONE };
+const LEAD_PURGE_SCHEDULE = { pattern: '0 5 * * *', tz: DISPLAY_TIME_ZONE };
 
 async function main() {
   const env = parseEnv(process.env);
@@ -189,7 +191,12 @@ async function main() {
     logger,
     webUrl,
   });
+  const leads = new LeadsService({ prisma, audit, retentionDays: env.LEAD_RETENTION_DAYS });
   const diffusionQueue = createQueue(QUEUE_NAMES.diffusion, connection);
+  await diffusionQueue.upsertJobScheduler('purge-leads', LEAD_PURGE_SCHEDULE, {
+    name: 'purge-leads',
+    opts: { attempts: 1 },
+  });
   await diffusionQueue.upsertJobScheduler(
     'send-campaigns',
     { every: CHECKOUT_JOBS_EVERY_MS },
@@ -211,7 +218,10 @@ async function main() {
     ),
     new Worker(
       QUEUE_NAMES.diffusion,
-      createDiffusionProcessor({ sendCampaigns: () => campaigns.sendPending() }),
+      createDiffusionProcessor({
+        sendCampaigns: () => campaigns.sendPending(),
+        purgeLeads: () => leads.purgeUnsubscribed(),
+      }),
       { connection },
     ),
     new Worker(

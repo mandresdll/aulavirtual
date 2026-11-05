@@ -7,6 +7,7 @@ export * from './api/diffusion.js';
 export * from './api/enrollment.js';
 export * from './api/errors.js';
 export * from './api/health.js';
+export * from './api/privacy.js';
 export * from './api/sales.js';
 export * from './domain/catalog.js';
 export * from './domain/dates.js';

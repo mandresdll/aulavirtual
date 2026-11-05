@@ -51,6 +51,8 @@ import { diffusionRoutes } from './modules/diffusion/diffusion.routes.js';
 import { LeadsService } from './modules/diffusion/leads.service.js';
 import { legalRoutes } from './modules/legal/legal.routes.js';
 import { LegalService } from './modules/legal/legal.service.js';
+import { privacyRoutes } from './modules/privacy/privacy.routes.js';
+import { PrivacyService } from './modules/privacy/privacy.service.js';
 import { reportsRoutes } from './modules/reports/reports.routes.js';
 import { ReportsService } from './modules/reports/reports.service.js';
 import { DOCUMENT_COLUMN_KEYS } from './config/env.js';
@@ -302,10 +304,18 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
         }),
       });
       await api.register(reportsRoutes, { reports: new ReportsService(deps.prisma) });
+      await api.register(privacyRoutes, {
+        privacy: new PrivacyService({
+          prisma: deps.prisma,
+          audit: recorder,
+          ...(deps.now ? { now: deps.now } : {}),
+        }),
+      });
       await api.register(diffusionRoutes, {
         leads: new LeadsService({
           prisma: deps.prisma,
           audit: recorder,
+          retentionDays: env.LEAD_RETENTION_DAYS,
           ...(deps.now ? { now: deps.now } : {}),
         }),
         campaigns: new CampaignsService({

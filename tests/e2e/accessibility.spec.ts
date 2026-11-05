@@ -4,6 +4,9 @@ import { expect, test } from '@playwright/test';
 /** Criterios WCAG 2.1 nivel A y AA que exige la ficha (RNF accesibilidad). */
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
+/** Anchos que exige la ficha (RF-01). */
+const WIDTHS = [360, 768, 1280];
+
 /** Páginas públicas a revisar. Cada fase agrega las suyas (catálogo, ficha, checkout…). */
 const PUBLIC_PAGES = [
   { name: 'inicio', path: '/' },
@@ -19,6 +22,10 @@ const PUBLIC_PAGES = [
   { name: 'verificación de certificado', path: '/verificar' },
   { name: 'certificado válido', path: '/verificar/DEM0-CERT-0001' },
   { name: 'certificado inexistente', path: '/verificar/AAAA-AAAA-AAAA' },
+  { name: 'privacidad', path: '/legal/privacidad' },
+  { name: 'derecho de retracto', path: '/legal/retracto' },
+  { name: 'devoluciones', path: '/legal/devoluciones' },
+  { name: 'baja de novedades', path: `/baja/${'0'.repeat(64)}` },
 ];
 
 for (const page of PUBLIC_PAGES) {
@@ -31,3 +38,32 @@ for (const page of PUBLIC_PAGES) {
     expect(results.violations).toEqual([]);
   });
 }
+
+for (const width of WIDTHS) {
+  test.describe(`at ${width} px`, () => {
+    test.use({ viewport: { width, height: 800 } });
+
+    for (const page of PUBLIC_PAGES) {
+      test(`${page.name} fits the screen and stays accessible`, async ({ page: browserPage }) => {
+        await browserPage.goto(page.path);
+        await expect(browserPage.getByRole('heading', { level: 1 })).toBeVisible();
+        await browserPage.waitForLoadState('networkidle');
+        const overflow = await browserPage.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        );
+        expect(overflow).toBeLessThanOrEqual(0);
+        const results = await new AxeBuilder({ page: browserPage }).withTags(WCAG_TAGS).analyze();
+        expect(results.violations).toEqual([]);
+      });
+    }
+  });
+}
+
+test('the keyboard reaches the skip link first and it moves the focus', async ({ page }) => {
+  await page.goto('/cursos');
+  await page.keyboard.press('Tab');
+  const skip = page.getByRole('link', { name: 'Saltar al contenido principal' });
+  await expect(skip).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/#contenido$/);
+});

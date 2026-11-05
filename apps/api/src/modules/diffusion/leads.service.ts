@@ -14,8 +14,12 @@ import { paginate } from '../admin/support.js';
 export interface LeadsServiceOptions {
   prisma: PrismaClient;
   audit: AuditRecorder;
+  /** Días que se conserva a quien se dio de baja. */
+  retentionDays: number;
   now?: () => Date;
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Interesados con consentimiento, bajas y visitas a las fichas (RF-02, Ley 21.719). */
 export class LeadsService {
@@ -95,6 +99,16 @@ export class LeadsService {
         );
       }
     });
+  }
+
+  /** Retención: borra a quienes se dieron de baja hace más del plazo. */
+  async purgeUnsubscribed(): Promise<number> {
+    const { prisma, retentionDays } = this.options;
+    const cutoff = new Date(this.now().getTime() - retentionDays * DAY_MS);
+    const { count } = await prisma.lead.deleteMany({
+      where: { status: 'unsubscribed', unsubscribedAt: { lt: cutoff } },
+    });
+    return count;
   }
 
   async list(query: AdminLeadsQuery) {

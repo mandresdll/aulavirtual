@@ -34,8 +34,12 @@ describe('sales processor', () => {
 
 describe('diffusion processor', () => {
   it('sends pending campaigns and rejects unknown jobs', async () => {
-    const process = createDiffusionProcessor({ sendCampaigns: vi.fn().mockResolvedValue(7) });
+    const process = createDiffusionProcessor({
+      sendCampaigns: vi.fn().mockResolvedValue(7),
+      purgeLeads: vi.fn().mockResolvedValue(2),
+    });
     expect(await process(job('send-campaigns'))).toEqual({ sent: 7 });
+    expect(await process(job('purge-leads'))).toEqual({ purged: 2 });
     await expect(process(job('x'))).rejects.toThrow(/Unknown/);
   });
 });

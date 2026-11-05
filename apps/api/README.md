@@ -2,6 +2,15 @@
 
 API REST (Fastify + Zod + Prisma) y worker de trabajos asíncronos (BullMQ).
 
+## Requisitos que cubre (Fase 8)
+
+- **SEG datos personales** (`src/modules/privacy/`): resumen, exportación y anonimización de un
+  titular con el permiso `privacy:manage`. Retención de interesados con `LEAD_RETENTION_DAYS`
+  (`purge-leads`, cola `diffusion`). Ver [datos-personales.md](../../docs/datos-personales.md).
+- **SEG rate limit** (`src/plugins/rate-limit.ts`): por usuario con sesión y por IP sin ella.
+- **Cobertura**: `pnpm --filter @plataforma/api test:coverage` exige 80 % en pagos, checkout,
+  inscripciones y certificados.
+
 ## Requisitos que cubre (Fase 7)
 
 - **RF-02 Difusión** (`src/modules/diffusion/`):

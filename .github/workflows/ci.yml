@@ -63,7 +63,8 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test:integration
+      - name: Unit and integration tests with coverage
+        run: pnpm --filter @plataforma/api test:coverage
 
   security:
     name: Dependency audit, licenses and secret scan
@@ -116,6 +117,23 @@ jobs:
         run: pnpm test:e2e
         env:
           E2E_BASE_URL: http://localhost:8080
+      - name: Validate staging and production compose files
+        run: |
+          for environment in staging prod; do
+            docker compose --env-file .env -f infra/docker-compose.yml \
+              -f "infra/docker-compose.$environment.yml" -f infra/docker-compose.backup.yml config --quiet
+          done
+      - name: Back up and restore into a clean database
+        run: |
+          docker build --tag plataforma-backup infra/backup
+          network="$(docker inspect "$(docker compose ps -q postgres)" \
+            --format '{{range $name, $value := .NetworkSettings.Networks}}{{$name}}{{end}}')"
+          export $(grep -E '^POSTGRES_' .env | xargs)
+          for passphrase in '' ci-passphrase; do
+            docker run --rm --network "$network" --entrypoint check-restore.sh \
+              -e PGHOST=postgres -e PGUSER="$POSTGRES_USER" -e PGPASSWORD="$POSTGRES_PASSWORD" \
+              -e PGDATABASE="$POSTGRES_DB" -e BACKUP_PASSPHRASE="$passphrase" plataforma-backup
+          done
       - name: Stack logs on failure
         if: failure()
         run: docker compose logs --no-color

@@ -1,5 +1,5 @@
 import { ENROLLMENT_SOURCE_LABELS, formatDateTime, type AdminEnrollment } from '@plataforma/shared';
-import { Feedback, smallButton } from '../../components/admin/ui';
+import { Feedback, ScrollRegion, smallButton } from '../../components/admin/ui';
 import { ErrorMessage, LoadingMessage } from '../../components/QueryState';
 import { useAdminEnrollments, useAdminWaitlist, useRetryEnrollment } from '../../lib/enrollment';
 import { useDocumentTitle } from '../../lib/use-document-title';
@@ -63,7 +63,7 @@ export function EnrollmentsPage() {
             <p className="text-ink-muted">No hay personas en listas de espera.</p>
           )}
           {waitlist.data && waitlist.data.items.length > 0 && (
-            <div className="overflow-x-auto">
+            <ScrollRegion label="Tabla de lista de espera">
               <table className="w-full text-left text-sm">
                 <caption className="sr-only">Listas de espera</caption>
                 <thead className="border-b border-gray-300">
@@ -103,7 +103,7 @@ export function EnrollmentsPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollRegion>
           )}
         </div>
       </section>
@@ -123,7 +123,7 @@ function EnrollmentTable({
   pending?: boolean;
 }) {
   return (
-    <div className="overflow-x-auto">
+    <ScrollRegion label="Tabla de matrículas fallidas">
       <table className="w-full text-left text-sm">
         <caption className="sr-only">{caption}</caption>
         <thead className="border-b border-gray-300">
@@ -176,6 +176,6 @@ function EnrollmentTable({
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }

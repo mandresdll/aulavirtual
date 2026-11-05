@@ -14,6 +14,7 @@ import {
   Field,
   inputClass,
   primaryButton,
+  ScrollRegion,
   secondaryButton,
   smallButton,
 } from '../../components/admin/ui';
@@ -60,7 +61,7 @@ export function InstructorsPage() {
           <ErrorMessage error={instructors.error} onRetry={() => void instructors.refetch()} />
         )}
         {instructors.data && (
-          <div className="overflow-x-auto">
+          <ScrollRegion label="Tabla de docentes">
             <table className="w-full text-left text-sm">
               <caption className="sr-only">Docentes</caption>
               <thead className="border-b border-gray-300">
@@ -124,7 +125,7 @@ export function InstructorsPage() {
             {instructors.data.items.length === 0 && (
               <p className="py-4 text-ink-muted">Aún no hay docentes.</p>
             )}
-          </div>
+          </ScrollRegion>
         )}
       </div>
     </div>
