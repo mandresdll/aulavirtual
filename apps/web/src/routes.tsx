@@ -10,6 +10,7 @@ import { LoginPage } from './pages/LoginPage';
 import { MyCoursesPage } from './pages/MyCoursesPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { OrderPage } from './pages/OrderPage';
+import { UnsubscribePage } from './pages/UnsubscribePage';
 import { VerifyPage } from './pages/VerifyPage';
 
 /**
@@ -31,6 +32,7 @@ export const routes: RouteObject[] = [
       { path: 'mis-cursos', element: <MyCoursesPage /> },
       { path: 'verificar', element: <VerifyPage /> },
       { path: 'verificar/:codigo', element: <VerifyPage /> },
+      { path: 'baja/:token', element: <UnsubscribePage /> },
       { path: 'legal/:slug', element: <LegalPage /> },
       {
         path: 'admin',
@@ -140,6 +142,70 @@ export const routes: RouteObject[] = [
                 Component: () => (
                   <RequirePermission permission="orders:refund">
                     <OrdersPage />
+                  </RequirePermission>
+                ),
+              };
+            },
+          },
+          {
+            path: 'documentos',
+            lazy: async () => {
+              const [{ DocumentsPage }, { RequirePermission }] = await Promise.all([
+                import('./pages/admin/DocumentsPage'),
+                import('./pages/admin/AdminApp'),
+              ]);
+              return {
+                Component: () => (
+                  <RequirePermission permission="sales:manage">
+                    <DocumentsPage />
+                  </RequirePermission>
+                ),
+              };
+            },
+          },
+          {
+            path: 'conciliacion',
+            lazy: async () => {
+              const [{ ReconciliationPage }, { RequirePermission }] = await Promise.all([
+                import('./pages/admin/ReconciliationPage'),
+                import('./pages/admin/AdminApp'),
+              ]);
+              return {
+                Component: () => (
+                  <RequirePermission permission="sales:manage">
+                    <ReconciliationPage />
+                  </RequirePermission>
+                ),
+              };
+            },
+          },
+          {
+            path: 'reportes',
+            lazy: async () => {
+              const [{ ReportsPage }, { RequirePermission }] = await Promise.all([
+                import('./pages/admin/ReportsPage'),
+                import('./pages/admin/AdminApp'),
+              ]);
+              return {
+                Component: () => (
+                  <RequirePermission permission="reports:read">
+                    <ReportsPage />
+                  </RequirePermission>
+                ),
+              };
+            },
+          },
+          {
+            path: 'difusion',
+            lazy: async () => {
+              const [{ DiffusionPage }, { RequirePermission }] = await Promise.all([
+                import('./pages/admin/DiffusionPage'),
+                import('./pages/admin/AdminApp'),
+              ]);
+              return {
+                Component: () => (
+                  <RequirePermission permission="diffusion:manage">
+                    <DiffusionPage />
                   </RequirePermission>
                 ),
               };

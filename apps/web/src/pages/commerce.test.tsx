@@ -423,7 +423,9 @@ describe('edition actions on the course page', () => {
       }),
     );
     expect(await screen.findByText(/lugar 2/)).toBeInTheDocument();
-    expect(calls.find((call) => call.method === 'POST')?.body).toEqual({ editionId: EDITION_ID });
+    expect(calls.find((call) => call.path.endsWith('/waitlist'))?.body).toEqual({
+      editionId: EDITION_ID,
+    });
   });
 
   it('lets the person with a held seat buy a sold out edition', async () => {

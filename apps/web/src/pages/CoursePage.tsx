@@ -9,10 +9,12 @@ import {
 import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import { EditionActions } from '../components/EditionActions';
+import { LeadForm } from '../components/LeadForm';
 import { SeatsBadge } from '../components/EditionStatus';
 import { ErrorMessage, LoadingMessage } from '../components/QueryState';
 import { ApiError } from '../lib/api';
 import { priceLabel, useCourse } from '../lib/catalog';
+import { useRecordCourseView } from '../lib/diffusion';
 import { useDocumentTitle } from '../lib/use-document-title';
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
@@ -92,6 +94,7 @@ function EditionCard({ edition }: { edition: Edition }) {
 }
 
 function CourseView({ course }: { course: CourseDetail }) {
+  useRecordCourseView(course.slug);
   return (
     <article>
       <div className="bg-brand-50">
@@ -214,6 +217,9 @@ function CourseView({ course }: { course: CourseDetail }) {
             </p>
           </Section>
         </div>
+      </div>
+      <div className="mx-auto max-w-6xl px-4 pb-12">
+        <LeadForm courseSlug={course.slug} />
       </div>
     </article>
   );
