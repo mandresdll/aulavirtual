@@ -75,6 +75,7 @@ export const EnvSchema = z
     VERIFY_RATE_LIMIT_MAX: positiveInt.default(30),
     LEADS_RATE_LIMIT_MAX: positiveInt.default(10),
     PAGE_VIEW_RATE_LIMIT_MAX: positiveInt.default(60),
+    LEAD_RETENTION_DAYS: positiveInt.default(730),
 
     SELLER_NAME: z
       .string()

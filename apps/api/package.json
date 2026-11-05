@@ -16,6 +16,7 @@
     "typecheck": "prisma generate --no-hints && tsc --noEmit",
     "test": "vitest run --project unit",
     "test:integration": "prisma generate --no-hints && vitest run --project integration --no-file-parallelism",
+    "test:coverage": "prisma generate --no-hints && vitest run --coverage --no-file-parallelism",
     "db:generate": "prisma generate",
     "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
     "db:deploy": "dotenv -e ../../.env -- prisma migrate deploy",

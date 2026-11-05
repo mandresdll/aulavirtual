@@ -13,6 +13,13 @@ export default defineConfig({
       provider: 'v8',
       include: ['src/**/*.ts'],
       exclude: ['src/**/*.test.ts', 'src/**/*.contract.ts', 'src/server.ts', 'src/worker.ts'],
+      // Objetivo de la ficha: al menos 80 % en los módulos de dominio.
+      thresholds: Object.fromEntries(
+        ['payments', 'checkout', 'enrollment', 'certificates'].map((module) => [
+          `src/modules/${module}/**`,
+          { lines: 80, functions: 80, statements: 80 },
+        ]),
+      ),
     },
     projects: [
       {

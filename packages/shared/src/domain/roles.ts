@@ -42,6 +42,8 @@ export const PERMISSIONS = {
   'reports:read': ['uta_admin', 'uta_finance', 'uta_reports'],
   /** Interesados, novedades y enlaces con UTM (RF-02). */
   'diffusion:manage': ['uta_admin', 'uta_editor'],
+  /** Solicitudes de acceso y supresión de datos personales (Ley 21.719). */
+  'privacy:manage': ['uta_admin'],
   /** Textos legales versionados (RF-11). */
   'legal:manage': ['uta_admin'],
   /** Vista de auditoría de solo lectura (RF-12). */

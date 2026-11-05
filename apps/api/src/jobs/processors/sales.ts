@@ -26,12 +26,19 @@ export function createSalesProcessor(jobs: SalesJobs, logger: Logger) {
 
 export interface DiffusionJobs {
   sendCampaigns(): Promise<number>;
+  purgeLeads(): Promise<number>;
 }
 
 /** Procesador de la cola `diffusion` (RF-02). */
 export function createDiffusionProcessor(jobs: DiffusionJobs) {
   return async (job: Job): Promise<Record<string, number>> => {
-    if (job.name !== 'send-campaigns') throw new Error(`Unknown diffusion job: ${job.name}`);
-    return { sent: await jobs.sendCampaigns() };
+    switch (job.name) {
+      case 'send-campaigns':
+        return { sent: await jobs.sendCampaigns() };
+      case 'purge-leads':
+        return { purged: await jobs.purgeLeads() };
+      default:
+        throw new Error(`Unknown diffusion job: ${job.name}`);
+    }
   };
 }
