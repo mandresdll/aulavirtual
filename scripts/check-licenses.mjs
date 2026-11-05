@@ -21,6 +21,8 @@ const ALLOWED = new Set([
   'PSF-2.0',
   'Python-2.0',
   'Unlicense',
+  // Licencia permisiva (OSI), sin pagos; la usa `pako`, dependencia de `pdf-lib`.
+  'Zlib',
 ]);
 
 // Paquetes revisados manualmente cuya licencia no se declara en formato SPDX.
