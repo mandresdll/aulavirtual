@@ -54,7 +54,7 @@ export function createIntegrations(env: Env): Integrations {
             commerceCode: required(env, 'WEBPAY_COMMERCE_CODE'),
             apiKey: required(env, 'WEBPAY_API_KEY'),
           })
-        : new MockPaymentGateway({ redirectBaseUrl: env.PUBLIC_API_URL }),
+        : new MockPaymentGateway({ redirectBaseUrl: env.PUBLIC_WEB_URL }),
 
     lms:
       env.LMS_DRIVER === 'moodle'

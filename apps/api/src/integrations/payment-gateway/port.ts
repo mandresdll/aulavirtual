@@ -19,6 +19,8 @@ export interface CreatedTransaction {
   token: string;
   /** URL a la que se redirige al comprador para pagar. */
   redirectUrl: string;
+  /** Si existen, se llega a `redirectUrl` enviando estos campos por POST (formulario). */
+  formFields?: Record<string, string>;
 }
 
 export interface TransactionDetails {
