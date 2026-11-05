@@ -34,7 +34,19 @@ En ese servidor hay que subir temporalmente `RATE_LIMIT_MAX`, `VERIFY_RATE_LIMIT
 
 ## Resultado
 
-Pendiente de la primera ejecución en el CI.
+Primera ejecución: 5 de noviembre de 2026, en GitHub Actions, commit `bfffd6e`, con 300 usuarios.
+
+| Medida                 | Resultado | Criterio   |
+| ---------------------- | --------- | ---------- |
+| Peticiones             | 68.950    | —          |
+| Peticiones por segundo | 248       | —          |
+| Errores                | 0 %       | < 1 %      |
+| Páginas, percentil 95  | 2 ms      | < 3.000 ms |
+| API, percentil 95      | 4 ms      | < 1.000 ms |
+| API, tiempo máximo     | 336 ms    | —          |
+
+Pasó todos los criterios. Estos tiempos son tan bajos porque no hay red de por medio y casi todo sale
+de la caché: el mismo curso y las mismas búsquedas se repiten. No son los tiempos que verá una persona.
 
 ## Límites de esta medición
 
