@@ -20,6 +20,7 @@ Esquemas Zod, tipos y utilidades de dominio que comparten la API y la SPA.
   `CourseInputSchema`, `EditionInputSchema` con reglas de fechas, nota y perfiles) y de la
   auditoría (`AuditQuerySchema`, `AuditLogEntrySchema`). Los usan los formularios de la SPA y
   la validación de la API.
+- **RF-07** (`api/settings.ts`): configuración del sitio, contraste del color y `brandRamp`.
 - **SEG datos personales** (`api/privacy.ts`): solicitudes de titulares y permiso `privacy:manage`.
 - **RF-02** (`api/diffusion.ts`): interesados, novedades, `LEAD_CONSENT`, `parseUtm` y
   `buildUtmLink`.

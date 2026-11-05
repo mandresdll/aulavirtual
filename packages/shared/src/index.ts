@@ -9,6 +9,7 @@ export * from './api/errors.js';
 export * from './api/health.js';
 export * from './api/privacy.js';
 export * from './api/sales.js';
+export * from './api/settings.js';
 export * from './domain/catalog.js';
 export * from './domain/dates.js';
 export * from './domain/money.js';

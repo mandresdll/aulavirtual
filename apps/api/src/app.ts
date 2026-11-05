@@ -61,6 +61,8 @@ import { ReconciliationService } from './modules/sales/reconciliation.service.js
 import { salesRoutes } from './modules/sales/sales.routes.js';
 import { SalesService } from './modules/sales/sales.service.js';
 import { seoRoutes } from './modules/seo/seo.routes.js';
+import { settingsRoutes } from './modules/settings/settings.routes.js';
+import { SettingsService } from './modules/settings/settings.service.js';
 import { auditPlugin, PrismaAuditRecorder, type AuditRecorder } from './plugins/audit.js';
 import { errorsPlugin } from './plugins/errors.js';
 import { rateLimitPlugin } from './plugins/rate-limit.js';
@@ -304,6 +306,14 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
         }),
       });
       await api.register(reportsRoutes, { reports: new ReportsService(deps.prisma) });
+      await api.register(settingsRoutes, {
+        settings: new SettingsService({
+          prisma: deps.prisma,
+          audit: recorder,
+          cache,
+          ttlSeconds: env.CATALOG_CACHE_TTL_SECONDS,
+        }),
+      });
       await api.register(privacyRoutes, {
         privacy: new PrivacyService({
           prisma: deps.prisma,
