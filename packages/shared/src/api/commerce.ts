@@ -343,6 +343,44 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   partially_refunded: 'Devuelta parcialmente',
 };
 
+/** Intentos de pago fallidos que admite una orden antes de quedar `failed`. */
+export const MAX_PAYMENT_ATTEMPTS = 3;
+
+export const PAYMENT_STATUSES = [
+  'created',
+  'confirming',
+  'authorized',
+  'rejected',
+  'aborted',
+  'failed',
+  'refunded',
+  'partially_refunded',
+] as const;
+export const PaymentStatusSchema = z.enum(PAYMENT_STATUSES);
+export type PaymentStatus = z.infer<typeof PaymentStatusSchema>;
+
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  created: 'Iniciado',
+  confirming: 'Confirmando',
+  authorized: 'Aprobado',
+  rejected: 'Rechazado',
+  aborted: 'Abandonado',
+  failed: 'Con error',
+  refunded: 'Devuelto',
+  partially_refunded: 'Devuelto parcialmente',
+};
+
+/** Datos del pago que entrega la pasarela; nunca el número de tarjeta. */
+export const OrderPaymentSchema = z.object({
+  status: PaymentStatusSchema,
+  authorizationCode: z.string().nullable(),
+  cardLast4: z.string().nullable(),
+  paymentType: z.string().nullable(),
+  installments: z.number().int().nullable(),
+  confirmedAt: z.iso.datetime().nullable(),
+});
+export type OrderPayment = z.infer<typeof OrderPaymentSchema>;
+
 export const OrderSummarySchema = z.object({
   number: z.string(),
   status: OrderStatusSchema,
@@ -355,9 +393,96 @@ export const OrderSummarySchema = z.object({
   /** Hasta cuándo se reservan los cupos para pagar (órdenes esperando pago). */
   expiresAt: z.iso.datetime().nullable(),
   createdAt: z.iso.datetime(),
+  /** Último pago de la orden, si existe. */
+  payment: OrderPaymentSchema.nullable(),
+  /** Intentos que quedan antes de que la orden pase a `failed`. */
+  paymentAttemptsLeft: z.number().int().nonnegative(),
 });
 export type OrderSummary = z.infer<typeof OrderSummarySchema>;
 
 export const OrderNumberParamsSchema = z.object({
   number: z.string().regex(/^UTA-\d{4}-\d{6,}$/, 'Número de orden inválido'),
 });
+
+// --- Pago y devoluciones (RF-03) -------------------------------------------------------------
+
+export const StartPaymentResponseSchema = z.object({
+  redirectUrl: z.string(),
+  /** Si existen, se llega a la pasarela enviando estos campos por POST. */
+  formFields: z.record(z.string(), z.string()).nullable(),
+});
+export type StartPaymentResponse = z.infer<typeof StartPaymentResponseSchema>;
+
+/** Parámetros con que la pasarela devuelve al comprador. */
+export const PaymentReturnSchema = z.object({
+  token_ws: z.string().max(100).optional(),
+  TBK_TOKEN: z.string().max(100).optional(),
+  TBK_ORDEN_COMPRA: z.string().max(30).optional(),
+  TBK_ID_SESION: z.string().max(61).optional(),
+});
+export type PaymentReturn = z.infer<typeof PaymentReturnSchema>;
+
+/** Resultado que la API informa a la SPA en `/ordenes/:numero?pago=`. */
+export const PAYMENT_RESULTS = [
+  'aprobado',
+  'rechazado',
+  'abandonado',
+  'vencido',
+  'procesando',
+  'error',
+] as const;
+export type PaymentResult = (typeof PAYMENT_RESULTS)[number];
+
+export const RefundRequestSchema = z.object({
+  amountClp: ClpAmountSchema.positive('El monto debe ser mayor que 0'),
+  reason: z
+    .string()
+    .trim()
+    .min(5, 'Indica el motivo (mínimo 5 caracteres)')
+    .max(500, 'Máximo 500 caracteres'),
+});
+export type RefundRequest = z.infer<typeof RefundRequestSchema>;
+
+export const REFUND_STATUSES = ['requested', 'processing', 'completed', 'failed'] as const;
+export const RefundStatusSchema = z.enum(REFUND_STATUSES);
+export type RefundStatus = z.infer<typeof RefundStatusSchema>;
+
+export const REFUND_STATUS_LABELS: Record<RefundStatus, string> = {
+  requested: 'Solicitada',
+  processing: 'En proceso',
+  completed: 'Completada',
+  failed: 'Fallida',
+};
+
+export const AdminOrderSchema = OrderSummarySchema.extend({
+  buyer: z.object({ name: z.string(), email: z.string() }),
+  payments: z.array(
+    OrderPaymentSchema.extend({
+      provider: z.string(),
+      buyOrder: z.string(),
+      amountClp: ClpAmountSchema,
+      createdAt: z.iso.datetime(),
+    }),
+  ),
+  refunds: z.array(
+    z.object({
+      id: z.string(),
+      amountClp: ClpAmountSchema,
+      status: RefundStatusSchema,
+      reason: z.string(),
+      createdAt: z.iso.datetime(),
+      completedAt: z.iso.datetime().nullable(),
+    }),
+  ),
+  history: z.array(
+    z.object({
+      fromStatus: OrderStatusSchema.nullable(),
+      toStatus: OrderStatusSchema,
+      reason: z.string().nullable(),
+      createdAt: z.iso.datetime(),
+    }),
+  ),
+  /** Monto que aún se puede devolver. */
+  refundableClp: ClpAmountSchema,
+});
+export type AdminOrder = z.infer<typeof AdminOrderSchema>;
