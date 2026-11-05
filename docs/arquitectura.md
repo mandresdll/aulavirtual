@@ -359,3 +359,34 @@ Moodle informa quién aprobó, no quién reprobó: reprobar se decide por tiempo
 | Reemisión con código nuevo                                | El certificado anterior sigue verificable como reemplazado e indica el código vigente.         |
 | Código de 60 bits aleatorios, alfabeto de Crockford       | No es secuencial ni enumerable, y tolera errores de transcripción (O por 0, I y L por 1).      |
 | Diseño único y provisional, sin logo real                 | Falta la identidad gráfica oficial; `certificateTemplate` aún no se usa.                       |
+
+## Ventas, reportes y difusión (Fase 7, RF-02, RF-08, RF-09)
+
+```mermaid
+flowchart LR
+  V[Visita con UTM] --> F[Contador diario de la ficha]
+  V --> L[Interesado con consentimiento]
+  V --> O[Orden]
+  L -->|hereda UTM si la orden no trae| O
+  O --> P[Pago]
+  P --> D[Documento: envío o archivo contable]
+  P --> C[Conciliación diaria con la pasarela]
+  F --> R[Reportes]
+  L --> R
+  O --> R
+  L --> N[Novedades con baja en un clic]
+```
+
+## Decisiones de la Fase 7
+
+| Decisión                                                            | Motivo                                                                                             |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| La conciliación solo marca diferencias                              | Cambiar un pago por su cuenta podría ocultar un error; lo resuelve una persona y queda auditado.   |
+| Visitas como contador por día, curso y campaña                      | Basta para la conversión y no recolecta datos personales (Ley 21.719).                             |
+| UTM en `sessionStorage`                                             | Acompañan la visita, también tras la pasarela, sin dejar rastro entre sesiones.                    |
+| Baja por correo, no por registro                                    | Quien se da de baja no debe seguir recibiendo novedades por haber consultado otro curso.           |
+| Reportes calculados al consultar                                    | El volumen esperado es bajo; evita tablas resumen que se desincronicen.                            |
+| Una venta cuenta en el período en que se pagó, con sus devoluciones | Cada venta se ve con su resultado final. Un mes cerrado puede cambiar si hay devoluciones después. |
+| Devolución repartida entre cursos por su peso en la orden           | Una devolución es por orden; el reporte por curso necesita asignarla sin perder pesos.             |
+| XLSX escrito sobre `fflate`, sin `exceljs`                          | `exceljs` arrastra `buffers`, sin licencia declarada, y la tabla es simple.                        |
+| Textos de CSV protegidos contra fórmulas                            | Un nombre escrito por un comprador no debe ejecutarse al abrir el archivo.                         |
