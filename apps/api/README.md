@@ -2,6 +2,16 @@
 
 API REST (Fastify + Zod + Prisma) y worker de trabajos asíncronos (BullMQ).
 
+## Requisitos que cubre (Fase 5)
+
+- **RF-05 Matrícula** (`src/modules/enrollment/`, `jobs/processors/enrollment.ts`):
+  - Adaptador Moodle Web Services (`integrations/lms/moodle.ts`).
+  - Cola `enrollment`: `sweep-enrollments` encola `enroll-user` con reintentos exponenciales.
+  - `send-welcomes`, `sync-withdrawals` y `advance-waitlists` corren cada minuto.
+- **RF-04 Inscripción liberada**: `POST /api/enrollments/free`, con perfiles desde el SGA y el
+  mismo control de cupos.
+- **Lista de espera** (`waitlist.service.ts`): cupo retenido `WAITLIST_OFFER_HOURS`.
+
 ## Requisitos que cubre (Fase 4)
 
 - **RF-03 Pago** (`src/modules/payments/`):
@@ -150,25 +160,31 @@ Autenticación (acceso público salvo el cierre de sesión):
 
 Carrito, checkout y textos legales:
 
-| Método   | Ruta                                 | Acceso                                        |
-| -------- | ------------------------------------ | --------------------------------------------- |
-| GET      | `/api/cart/preview?editionIds=`      | Público (carrito del navegador)               |
-| GET      | `/api/cart`                          | Sesión                                        |
-| POST     | `/api/cart/items`                    | Sesión + CSRF                                 |
-| DELETE   | `/api/cart/items/{editionId}`        | Sesión + CSRF                                 |
-| POST     | `/api/cart/merge`                    | Sesión + CSRF                                 |
-| POST     | `/api/checkout/quote`                | Sesión + CSRF (rate limit)                    |
-| POST     | `/api/checkout/orders`               | Sesión + CSRF + `Idempotency-Key`             |
-| GET      | `/api/orders/{number}`               | Sesión (solo el dueño)                        |
-| GET      | `/api/legal`, `/api/legal/provider`  | Público                                       |
-| GET/POST | `/api/admin/legal`                   | `legal:manage` (`uta_admin`)                  |
-| GET/POST | `/api/admin/coupons`                 | `coupons:manage` (`uta_admin`, `uta_finance`) |
-| PUT      | `/api/admin/coupons/{id}`            | `coupons:manage`                              |
-| POST     | `/api/orders/{number}/pay`           | Sesión + CSRF (rate limit)                    |
-| GET/POST | `/api/payments/return`               | Público (solo trae un token)                  |
-| GET      | `/api/orders/{number}/receipt`       | Sesión (solo el dueño, orden pagada)          |
-| GET      | `/api/admin/orders/{number}`         | `orders:refund` (`uta_admin`, `uta_finance`)  |
-| POST     | `/api/admin/orders/{number}/refunds` | `orders:refund` + `Idempotency-Key`           |
+| Método   | Ruta                                            | Acceso                                           |
+| -------- | ----------------------------------------------- | ------------------------------------------------ |
+| GET      | `/api/cart/preview?editionIds=`                 | Público (carrito del navegador)                  |
+| GET      | `/api/cart`                                     | Sesión                                           |
+| POST     | `/api/cart/items`                               | Sesión + CSRF                                    |
+| DELETE   | `/api/cart/items/{editionId}`                   | Sesión + CSRF                                    |
+| POST     | `/api/cart/merge`                               | Sesión + CSRF                                    |
+| POST     | `/api/checkout/quote`                           | Sesión + CSRF (rate limit)                       |
+| POST     | `/api/checkout/orders`                          | Sesión + CSRF + `Idempotency-Key`                |
+| GET      | `/api/orders/{number}`                          | Sesión (solo el dueño)                           |
+| GET      | `/api/legal`, `/api/legal/provider`             | Público                                          |
+| GET/POST | `/api/admin/legal`                              | `legal:manage` (`uta_admin`)                     |
+| GET/POST | `/api/admin/coupons`                            | `coupons:manage` (`uta_admin`, `uta_finance`)    |
+| PUT      | `/api/admin/coupons/{id}`                       | `coupons:manage`                                 |
+| POST     | `/api/orders/{number}/pay`                      | Sesión + CSRF (rate limit)                       |
+| GET      | `/api/my/enrollments`                           | Sesión                                           |
+| POST     | `/api/enrollments/free`                         | Sesión + CSRF (perfil permitido)                 |
+| POST     | `/api/waitlist`                                 | Sesión + CSRF                                    |
+| DELETE   | `/api/waitlist/{editionId}`                     | Sesión + CSRF                                    |
+| GET      | `/api/admin/enrollments`, `/api/admin/waitlist` | `enrollments:manage` (`uta_admin`, `uta_editor`) |
+| POST     | `/api/admin/enrollments/{id}/retry`             | `enrollments:manage`                             |
+| GET/POST | `/api/payments/return`                          | Público (solo trae un token)                     |
+| GET      | `/api/orders/{number}/receipt`                  | Sesión (solo el dueño, orden pagada)             |
+| GET      | `/api/admin/orders/{number}`                    | `orders:refund` (`uta_admin`, `uta_finance`)     |
+| POST     | `/api/admin/orders/{number}/refunds`            | `orders:refund` + `Idempotency-Key`              |
 
 Panel de administración. Todas las rutas exigen sesión y permiso, y las mutaciones además el
 token CSRF. `catalog:manage` corresponde a `uta_admin` y `uta_editor`; `audit:read`, solo a

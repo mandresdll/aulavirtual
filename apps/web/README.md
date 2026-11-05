@@ -3,6 +3,14 @@
 SPA React + TypeScript (Vite) con el sitio público, el área del comprador y el panel de
 administración (`/admin`, cargado en un chunk aparte).
 
+## Requisitos que cubre (Fase 5)
+
+- **RF-04 y RF-05** (`components/EditionActions.tsx`): la ficha muestra, según la persona y la
+  edición, «Agregar al carrito», «Inscribirme sin costo», la lista de espera con su lugar, el
+  cupo retenido o «Ya estás inscrito».
+- **Panel** `/admin/inscripciones`: matrículas fallidas con «Reintentar», matrículas en proceso y
+  listas de espera. Las ediciones sin curso del Aula Virtual muestran un aviso.
+
 ## Requisitos que cubre (Fase 4)
 
 - **RF-03 Pago**:

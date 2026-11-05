@@ -301,3 +301,33 @@ sequenceDiagram
 | `failed` no cuenta como intento del comprador                          | Un error de la pasarela o un intento reemplazado no es culpa de quien paga; solo cuentan `rejected` y `aborted`.                                 |
 | Devolución entre dos transacciones, con la orden en `refund_requested` | No se retiene un bloqueo durante la llamada a la pasarela, y el estado impide una segunda devolución simultánea.                                 |
 | Solo la devolución total retira la inscripción                         | Una devolución parcial es un ajuste de precio; quitar el acceso es una decisión aparte.                                                          |
+
+## Matrícula y lista de espera (Fase 5, RF-04 y RF-05)
+
+```mermaid
+flowchart LR
+  P[Pago aprobado, cupón 100 %<br/>o inscripción liberada] --> E[(Inscripción<br/>pending_lms)]
+  E --> S[Barrido del worker<br/>cada minuto]
+  S --> J[Cola enrollment<br/>enroll-user]
+  J -->|Moodle OK| OK[enrolled]
+  J -->|error temporal| R[Reintento exponencial]
+  R --> J
+  J -->|error definitivo o<br/>reintentos agotados| F[failed + alerta a la UTA]
+  F -->|Reintentar en el panel| E
+  OK --> W[Correo de bienvenida]
+```
+
+Cuando hay un cupo libre en una edición con fila, el worker crea una reserva sin orden para el
+siguiente y le avisa por correo. Esa reserva cuenta como cupo ocupado para las demás personas,
+y solo quien tiene la oferta puede usarla. Si vence, pasa al siguiente.
+
+## Decisiones de la Fase 5
+
+| Decisión                                                                    | Motivo                                                                                                   |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Inscripciones encoladas por barrido, no al confirmar el pago                | Confirmar un pago no depende de Redis y ninguna matrícula se pierde. Demora máxima: cerca de un minuto.  |
+| Un trabajo por inscripción con `jobId` fijo                                 | Evita matricular dos veces; el barrido retira el trabajo terminado para permitir el reintento manual.    |
+| Bienvenida, desmatrícula y ofertas como barridos aparte, con marca de fecha | Si el correo o Moodle fallan, se reintenta solo esa parte sin repetir lo demás.                          |
+| Lista de espera por barrido de cupos libres                                 | Cubre todas las causas (devolución, retiro, aumento de cupos, orden vencida) sin engancharse a cada una. |
+| Cupo retenido con una reserva sin orden                                     | Reutiliza el conteo de cupos existente: nadie más puede tomarlo mientras dura la oferta.                 |
+| Reactivar la inscripción retirada al volver a comprar                       | El índice único usuario + edición impide una segunda fila.                                               |
