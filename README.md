@@ -9,7 +9,8 @@ correo de acceso → certificado verificable → registro de la venta para bolet
 Se integra con el SGA (identidad, roles, validador de certificados); no reemplaza al Aula
 Virtual ni al módulo de aranceles del SGA.
 
-> Estado: **Fase 8 — Calidad y requisitos no funcionales**. Ver el plan por fases en
+> Estado: **Fase 9 — Entrega**. Lo que falta para la puesta en marcha está en
+> [docs/pendientes-cft.md](docs/pendientes-cft.md). Ver el plan por fases en
 > [PROMPT_CLAUDE_CODE.md](PROMPT_CLAUDE_CODE.md) (sección 10) y el avance en
 > [docs/matriz-cumplimiento.md](docs/matriz-cumplimiento.md).
 
@@ -37,6 +38,11 @@ docker compose up --build
 `docker compose up` aplica las migraciones y carga los **datos de demostración** (2 áreas,
 4 cursos, ediciones con y sin cupos, el cupón `BIENVENIDA10` y usuarios de prueba por rol).
 La carga es idempotente y nunca se ejecuta con `APP_ENV=production`.
+
+**Documentación**: [manual de administración](docs/manual-administracion.md),
+[manual del comprador](docs/manual-comprador.md), [despliegue](docs/despliegue.md),
+[respaldo](docs/respaldo-restauracion.md), [arquitectura](docs/arquitectura.md) y
+[prueba de punta a punta](docs/prueba-punta-a-punta.md).
 
 **Panel de administración**: http://localhost:8080/admin. En desarrollo el ingreso usa un
 proveedor de identidad simulado: elige un usuario de demostración. «Administración UTA» ve
