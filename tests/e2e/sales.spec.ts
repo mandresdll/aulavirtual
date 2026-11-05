@@ -112,6 +112,15 @@ test('the diffusion team writes a campaign and the link unsubscribes', async ({ 
   await expect(page.getByRole('cell', { name: `${CAMPAIGN}@example.com` })).toBeVisible();
   await expectAccessibleWhenNarrow(page);
 
+  await page.goto('/admin/privacidad');
+  await page.getByLabel('Correo del titular').fill(`${CAMPAIGN}@example.com`);
+  await page.getByRole('button', { name: 'Buscar' }).click();
+  await expect(page.getByRole('heading', { name: 'Solo interesado, sin cuenta' })).toBeVisible();
+  await expectAccessible(page);
+  await page.getByRole('button', { name: 'Anonimizar' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Anonimizar' }).click();
+  await expect(page.getByText('Los datos fueron anonimizados.')).toBeVisible();
+
   await page.goto(`/baja/${'0'.repeat(64)}`);
   await expect(page.getByRole('alert')).toContainText('no es válido');
   await expectAccessible(page);
