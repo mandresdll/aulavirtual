@@ -77,6 +77,22 @@ export const routes: RouteObject[] = [
             },
           },
           {
+            path: 'inscripciones',
+            lazy: async () => {
+              const [{ EnrollmentsPage }, { RequirePermission }] = await Promise.all([
+                import('./pages/admin/EnrollmentsPage'),
+                import('./pages/admin/AdminApp'),
+              ]);
+              return {
+                Component: () => (
+                  <RequirePermission permission="enrollments:manage">
+                    <EnrollmentsPage />
+                  </RequirePermission>
+                ),
+              };
+            },
+          },
+          {
             path: 'cupones',
             lazy: async () => {
               const [{ CouponsPage }, { RequirePermission }] = await Promise.all([

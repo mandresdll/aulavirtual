@@ -340,6 +340,124 @@ describe('order payment', () => {
   });
 });
 
+describe('edition actions on the course page', () => {
+  const noEnrollments = { enrolledEditionIds: [], waitlist: [] };
+  const page = (overrides: Parameters<typeof edition>[0]) =>
+    courseDetail({ editions: [edition({ id: EDITION_ID, ...overrides })] });
+  const routesFor = (detail: ReturnType<typeof courseDetail>) => ({
+    [`GET /api/catalog/courses/${detail.slug}`]: detail,
+  });
+
+  it('offers free enrollment to an eligible profile, with the CSRF token', async () => {
+    const detail = page({ freeForCommunity: true, communityProfiles: ['student'] });
+    const calls = mockServer({
+      ...routesFor(detail),
+      'GET /api/auth/session': {
+        ...SESSION,
+        user: { ...SESSION.user, profiles: ['student'] },
+      },
+      'GET /api/my/enrollments': noEnrollments,
+      'GET /api/cart': { items: [], subtotalClp: 0 },
+      'POST /api/enrollments/free': () => ({ status: 204 }),
+    });
+    renderAt(`/cursos/${detail.slug}`);
+    await userEvent.click(
+      await screen.findByRole('button', {
+        name: 'Inscribirme sin costo en la edición JS-2026-1',
+      }),
+    );
+    await vi.waitFor(() => {
+      const post = calls.find((call) => call.path === '/api/enrollments/free');
+      expect(post?.body).toEqual({ editionId: EDITION_ID });
+      expect(post?.headers.get('x-csrf-token')).toBe('csrf-123');
+    });
+    expect(screen.queryByRole('button', { name: /Agregar al carrito/ })).toBeNull();
+  });
+
+  it('does not offer free enrollment to other profiles', async () => {
+    const detail = page({ freeForCommunity: true, communityProfiles: ['teacher'] });
+    mockServer({
+      ...routesFor(detail),
+      'GET /api/auth/session': { ...SESSION, user: { ...SESSION.user, profiles: ['student'] } },
+      'GET /api/my/enrollments': noEnrollments,
+      'GET /api/cart': { items: [], subtotalClp: 0 },
+    });
+    renderAt(`/cursos/${detail.slug}`);
+    expect(await screen.findByRole('button', { name: /Agregar al carrito/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /sin costo/ })).toBeNull();
+  });
+
+  it('asks visitors to sign in to join the waitlist of a full edition', async () => {
+    const detail = page({ availableSeats: 0 });
+    mockServer({ ...routesFor(detail), 'GET /api/auth/session': { authenticated: false } });
+    renderAt(`/cursos/${detail.slug}`);
+    expect(
+      await screen.findByRole('link', { name: 'Ingresa para unirte a la lista de espera' }),
+    ).toHaveAttribute('href', `/ingresar?returnTo=%2Fcursos%2F${detail.slug}`);
+  });
+
+  it('joins the waitlist and shows the place in line', async () => {
+    const detail = page({ availableSeats: 0 });
+    let joined = false;
+    const calls = mockServer({
+      ...routesFor(detail),
+      'GET /api/auth/session': SESSION,
+      'GET /api/cart': { items: [], subtotalClp: 0 },
+      'GET /api/my/enrollments': () => ({
+        body: joined
+          ? {
+              enrolledEditionIds: [],
+              waitlist: [{ editionId: EDITION_ID, position: 2, offerExpiresAt: null }],
+            }
+          : noEnrollments,
+      }),
+      'POST /api/waitlist': () => {
+        joined = true;
+        return { status: 204 };
+      },
+    });
+    renderAt(`/cursos/${detail.slug}`);
+    await userEvent.click(
+      await screen.findByRole('button', {
+        name: 'Unirme a la lista de espera de la edición JS-2026-1',
+      }),
+    );
+    expect(await screen.findByText(/lugar 2/)).toBeInTheDocument();
+    expect(calls.find((call) => call.method === 'POST')?.body).toEqual({ editionId: EDITION_ID });
+  });
+
+  it('lets the person with a held seat buy a sold out edition', async () => {
+    const detail = page({ availableSeats: 0 });
+    mockServer({
+      ...routesFor(detail),
+      'GET /api/auth/session': SESSION,
+      'GET /api/cart': { items: [], subtotalClp: 0 },
+      'GET /api/my/enrollments': {
+        enrolledEditionIds: [],
+        waitlist: [
+          { editionId: EDITION_ID, position: null, offerExpiresAt: '2026-06-02T12:00:00.000Z' },
+        ],
+      },
+    });
+    renderAt(`/cursos/${detail.slug}`);
+    expect(await screen.findByText(/Tienes un cupo retenido/)).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Agregar al carrito/ })).toBeInTheDocument();
+  });
+
+  it('tells enrolled people they are already in', async () => {
+    const detail = page({});
+    mockServer({
+      ...routesFor(detail),
+      'GET /api/auth/session': SESSION,
+      'GET /api/cart': { items: [], subtotalClp: 0 },
+      'GET /api/my/enrollments': { enrolledEditionIds: [EDITION_ID], waitlist: [] },
+    });
+    renderAt(`/cursos/${detail.slug}`);
+    expect(await screen.findByText('Ya estás inscrito en esta edición.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Agregar al carrito/ })).toBeNull();
+  });
+});
+
 describe('legal pages', () => {
   it('renders the current version as Markdown without executing HTML', async () => {
     mockServer({

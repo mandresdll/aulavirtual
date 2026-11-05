@@ -23,6 +23,12 @@ const CARDS: { to: string; title: string; text: string; permission: Permission }
     permission: 'catalog:manage',
   },
   {
+    to: '/admin/inscripciones',
+    title: 'Inscripciones',
+    text: 'Matrículas fallidas en el Aula Virtual y listas de espera.',
+    permission: 'enrollments:manage',
+  },
+  {
     to: '/admin/cupones',
     title: 'Cupones',
     text: 'Descuentos, becas y convenios con vigencia y límites de uso.',

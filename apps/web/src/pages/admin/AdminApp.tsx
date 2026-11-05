@@ -9,6 +9,7 @@ const SECTIONS: { to: string; label: string; permission: Permission | null; end?
   { to: '/admin/cursos', label: 'Cursos', permission: 'catalog:manage' },
   { to: '/admin/areas', label: 'Áreas', permission: 'catalog:manage' },
   { to: '/admin/docentes', label: 'Docentes', permission: 'catalog:manage' },
+  { to: '/admin/inscripciones', label: 'Inscripciones', permission: 'enrollments:manage' },
   { to: '/admin/cupones', label: 'Cupones', permission: 'coupons:manage' },
   { to: '/admin/ordenes', label: 'Órdenes', permission: 'orders:refund' },
   { to: '/admin/legales', label: 'Textos legales', permission: 'legal:manage' },
