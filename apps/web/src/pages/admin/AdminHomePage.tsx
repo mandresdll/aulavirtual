@@ -29,6 +29,12 @@ const CARDS: { to: string; title: string; text: string; permission: Permission }
     permission: 'enrollments:manage',
   },
   {
+    to: '/admin/certificados',
+    title: 'Certificados',
+    text: 'Busca, reemite y revoca certificados, y decide los cursos sin nota.',
+    permission: 'certificates:manage',
+  },
+  {
     to: '/admin/cupones',
     title: 'Cupones',
     text: 'Descuentos, becas y convenios con vigencia y límites de uso.',

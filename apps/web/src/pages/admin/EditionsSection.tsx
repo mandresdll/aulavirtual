@@ -31,6 +31,7 @@ import {
   StatusBadge,
 } from '../../components/admin/ui';
 import { useEditionAction, useSaveEdition, type EditionAction } from '../../lib/admin';
+import { useSyncResults } from '../../lib/certificates';
 import { validateWith } from '../../lib/forms';
 
 const PROFILE_LABELS: Record<(typeof COMMUNITY_PROFILES)[number], string> = {
@@ -118,6 +119,17 @@ export function EditionsSection({ course }: { course: AdminCourseDetail }) {
   const [duplicating, setDuplicating] = useState<AdminEdition | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  const sync = useSyncResults();
+  const syncResults = (id: string) => {
+    setMessage(null);
+    sync.mutate(id, {
+      onSuccess: ({ checked, completed, failed }) =>
+        setMessage(
+          `Inscripciones consultadas: ${checked}. Aprobadas: ${completed}. Reprobadas: ${failed}.`,
+        ),
+    });
+  };
+
   const run = (input: EditionAction) => {
     setMessage(null);
     action.mutate(input, {
@@ -149,7 +161,7 @@ export function EditionsSection({ course }: { course: AdminCourseDetail }) {
       </div>
 
       <div className="mt-4 space-y-4">
-        <Feedback error={action.error} success={message} />
+        <Feedback error={action.error ?? sync.error} success={message} />
         {editing !== null && (
           <EditionEditor
             key={editing === 'new' ? 'new' : editing.id}
@@ -269,6 +281,17 @@ export function EditionsSection({ course }: { course: AdminCourseDetail }) {
                       >
                         Duplicar
                       </button>
+                      {edition.moodleCourseId && edition.enrollmentCount > 0 && (
+                        <button
+                          type="button"
+                          className={smallButton}
+                          aria-label={`Sincronizar aprobación de ${edition.code}`}
+                          disabled={sync.isPending}
+                          onClick={() => syncResults(edition.id)}
+                        >
+                          Sincronizar aprobación
+                        </button>
+                      )}
                       {edition.status === 'draft' && edition.enrollmentCount === 0 && (
                         <ConfirmDialog
                           trigger={

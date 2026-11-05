@@ -51,6 +51,8 @@ export const EnvSchema = z
     SEAT_RESERVATION_TTL_MINUTES: positiveInt.max(120).default(15),
     CHECKOUT_RATE_LIMIT_MAX: positiveInt.default(30),
     WAITLIST_OFFER_HOURS: positiveInt.max(168).default(24),
+    COURSE_RESULT_GRACE_DAYS: positiveInt.max(365).default(30),
+    VERIFY_RATE_LIMIT_MAX: positiveInt.default(30),
 
     SELLER_NAME: z
       .string()

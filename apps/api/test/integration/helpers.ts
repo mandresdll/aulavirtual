@@ -20,6 +20,7 @@ export function integrationEnv(overrides: Record<string, string> = {}) {
 export async function resetCatalogData(prisma: PrismaClient): Promise<void> {
   await prisma.seatReservation.deleteMany({ where: { orderId: null } });
   await prisma.waitlistEntry.deleteMany();
+  await prisma.certificate.deleteMany({ where: { enrollment: { orderItemId: null } } });
   await prisma.enrollment.deleteMany({ where: { orderItemId: null } });
   await prisma.cartItem.deleteMany();
   await prisma.coupon.deleteMany({ where: { orders: { none: {} }, redemptions: { none: {} } } });

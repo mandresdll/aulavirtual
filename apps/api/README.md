@@ -2,6 +2,19 @@
 
 API REST (Fastify + Zod + Prisma) y worker de trabajos asíncronos (BullMQ).
 
+## Requisitos que cubre (Fase 6)
+
+- **RF-06 Certificación verificable** (`src/modules/certificates/`, `jobs/processors/certificates.ts`):
+  - `rules.ts`: resultado del curso (por finalización o nota) y código `XXXX-XXXX-XXXX`.
+  - `certificate-pdf.ts`: PDF determinista con QR; se guarda su SHA-256 y se regenera al descargar.
+  - Cola `certificates`: `sync-results` cada hora; `send-certificates` y `sync-validator` cada
+    minuto.
+  - Verificación pública `GET /api/verify/{code}` con límite `VERIFY_RATE_LIMIT_MAX`: solo nombre,
+    curso, horas y fecha.
+  - Reemisión con código nuevo enlazado al anterior y revocación con motivo, ambas auditadas.
+  - Adaptador HTTP del validador (`integrations/certificate-validator/sga.ts`) sobre un contrato
+    supuesto (Q5).
+
 ## Requisitos que cubre (Fase 5)
 
 - **RF-05 Matrícula** (`src/modules/enrollment/`, `jobs/processors/enrollment.ts`):
@@ -113,7 +126,7 @@ API REST (Fastify + Zod + Prisma) y worker de trabajos asíncronos (BullMQ).
   (Prisma), Redis (rate limit, BullMQ).
 - **SEG**: helmet (CSP, HSTS), CORS restringido, rate limit por IP, validación Zod, errores sin
   detalles internos, logs sin datos personales, configuración validada.
-- **RF-03, RF-05, RF-06, RF-08, RF-10**: puertos de integración con adaptadores simulados.
+- **RF-03, RF-05, RF-08, RF-10**: puertos de integración con adaptadores simulados.
 - **RF-12**: contrato de auditoría (persistido desde la Fase 2).
 
 ## Estructura
@@ -204,6 +217,13 @@ token CSRF. `catalog:manage` corresponde a `uta_admin` y `uta_editor`; `audit:re
 | POST       | `/api/admin/courses/{id}/editions`                                               | `catalog:manage`                       |
 | PUT/DELETE | `/api/admin/editions/{id}`                                                       | `catalog:manage`                       |
 | POST       | `/api/admin/editions/{id}/publish·unpublish·duplicate`                           | `catalog:manage`                       |
+| GET        | `/api/admin/certificates` (`q`)                                                  | `certificates:manage`                  |
+| POST       | `/api/admin/certificates/{id}/reissue·revoke`                                    | `certificates:manage`                  |
+| GET        | `/api/admin/enrollments/review`                                                  | `certificates:manage`                  |
+| POST       | `/api/admin/enrollments/{id}/result`                                             | `certificates:manage`                  |
+| POST       | `/api/admin/editions/{id}/sync-results`                                          | `certificates:manage`                  |
+| GET        | `/api/verify/{code}`                                                             | Público                                |
+| GET        | `/api/my/courses`, `/api/my/certificates/{code}/pdf`                             | Sesión iniciada                        |
 | GET        | `/api/admin/audit` (`from`, `to`, `actorId`, `action`, `entityType`, `entityId`) | `audit:read`                           |
 
 ## Comandos

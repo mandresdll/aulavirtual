@@ -36,15 +36,9 @@ describe('createIntegrations', () => {
   });
 
   it('real adapters not yet implemented fail loudly instead of pretending to work', async () => {
-    const integrations = createIntegrations(
-      testEnv({
-        CERTIFICATE_VALIDATOR_DRIVER: 'sga',
-        CERTIFICATE_VALIDATOR_URL: 'https://sga.example.cl',
-        CERTIFICATE_VALIDATOR_TOKEN: 't',
-      }),
+    const integrations = createIntegrations(testEnv({ INVOICING_DRIVER: 'export' }));
+    await expect(integrations.invoicing.getStatus('x')).rejects.toBeInstanceOf(
+      AdapterNotImplementedError,
     );
-    await expect(
-      integrations.certificateValidator.revoke({ code: 'CODIGO', reason: 'prueba' }),
-    ).rejects.toBeInstanceOf(AdapterNotImplementedError);
   });
 });

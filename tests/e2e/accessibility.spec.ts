@@ -16,6 +16,9 @@ const PUBLIC_PAGES = [
   { name: 'ingreso', path: '/ingresar?error=cancelado' },
   { name: 'carrito vacío', path: '/carrito' },
   { name: 'términos y condiciones', path: '/legal/terminos' },
+  { name: 'verificación de certificado', path: '/verificar' },
+  { name: 'certificado válido', path: '/verificar/DEM0-CERT-0001' },
+  { name: 'certificado inexistente', path: '/verificar/AAAA-AAAA-AAAA' },
 ];
 
 for (const page of PUBLIC_PAGES) {

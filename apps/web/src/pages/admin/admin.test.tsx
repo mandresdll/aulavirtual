@@ -11,6 +11,7 @@ import { AdminLayout, RequirePermission } from './AdminApp';
 import { AdminHomePage } from './AdminHomePage';
 import { AreasPage } from './AreasPage';
 import { AuditPage } from './AuditPage';
+import { CertificatesPage } from './CertificatesPage';
 import { EnrollmentsPage } from './EnrollmentsPage';
 import { LegalAdminPage } from './LegalAdminPage';
 import { OrdersPage } from './OrdersPage';
@@ -35,6 +36,7 @@ const testRoutes: RouteObject[] = [
           { path: 'areas', element: <AreasPage /> },
           { path: 'ordenes', element: <OrdersPage /> },
           { path: 'inscripciones', element: <EnrollmentsPage /> },
+          { path: 'certificados', element: <CertificatesPage /> },
           { path: 'legales', element: <LegalAdminPage /> },
           {
             path: 'auditoria',
@@ -274,6 +276,90 @@ describe('enrollments page', () => {
       expect(calls.find((call) => call.method === 'POST')?.headers.get('x-csrf-token')).toBe(
         'csrf-123',
       ),
+    );
+  });
+});
+
+describe('certificates page', () => {
+  const certificate = {
+    id: '11111111-1111-4111-8111-111111111111',
+    code: 'ABCD-EFGH-JKMN',
+    status: 'valid',
+    recipientName: 'Ana Soto',
+    email: 'ana@example.com',
+    courseTitle: 'Excel',
+    editionCode: 'XLS-1',
+    issuedAt: '2026-06-01T12:00:00.000Z',
+    revocationReason: null,
+    validatorSyncStatus: 'failed',
+    validatorLastError: 'Rechazado',
+  };
+
+  it('revokes with a reason after confirming', async () => {
+    const calls = mockServer({
+      'GET /api/auth/session': sessionAs(['uta_editor']),
+      'GET /api/admin/certificates': { items: [certificate] },
+      'GET /api/admin/enrollments/review': { items: [] },
+      [`POST /api/admin/certificates/${certificate.id}/revoke`]: {
+        ...certificate,
+        status: 'revoked',
+      },
+    });
+    renderAt('/admin/certificados?q=Ana');
+    expect(await screen.findByText(/Rechazado/)).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Revocar certificado ABCD-EFGH-JKMN' }),
+    );
+    await userEvent.type(screen.getByLabelText('Motivo de la revocación'), 'Error en la nómina');
+    await userEvent.click(screen.getByRole('button', { name: 'Revocar' }));
+    const dialog = await screen.findByRole('alertdialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Revocar' }));
+    await vi.waitFor(() =>
+      expect(calls.find((call) => call.method === 'POST')?.body).toEqual({
+        reason: 'Error en la nómina',
+      }),
+    );
+    expect(await screen.findByText('Certificado ABCD-EFGH-JKMN revocado.')).toBeInTheDocument();
+  });
+
+  it('asks for a reason before revoking', async () => {
+    mockServer({
+      'GET /api/auth/session': sessionAs(['uta_editor']),
+      'GET /api/admin/certificates': { items: [certificate] },
+      'GET /api/admin/enrollments/review': { items: [] },
+    });
+    renderAt('/admin/certificados?q=Ana');
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Revocar certificado ABCD-EFGH-JKMN' }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Revocar' }));
+    expect(await screen.findByText(/Indica el motivo/)).toBeInTheDocument();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+
+  it('decides a course without grade', async () => {
+    const item = {
+      id: '22222222-2222-4222-8222-222222222222',
+      status: 'enrolled',
+      source: 'purchase',
+      attempts: 0,
+      lastError: null,
+      user: { name: 'Luis Díaz', email: 'luis@example.com' },
+      courseTitle: 'Excel',
+      editionCode: 'XLS-1',
+      createdAt: '2026-06-01T12:00:00.000Z',
+    };
+    const calls = mockServer({
+      'GET /api/auth/session': sessionAs(['uta_editor']),
+      'GET /api/admin/enrollments/review': { items: [item] },
+      [`POST /api/admin/enrollments/${item.id}/result`]: () => ({ status: 204 }),
+    });
+    renderAt('/admin/certificados');
+    await userEvent.click(await screen.findByRole('button', { name: 'Aprobar a Luis Díaz' }));
+    const dialog = await screen.findByRole('alertdialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Aprobar' }));
+    await vi.waitFor(() =>
+      expect(calls.find((call) => call.method === 'POST')?.body).toEqual({ result: 'completed' }),
     );
   });
 });

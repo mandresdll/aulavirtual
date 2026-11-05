@@ -57,6 +57,11 @@ export function Layout() {
                   Cursos
                 </NavLink>
               </li>
+              <li>
+                <NavLink to="/verificar" className={navLinkClass}>
+                  Verificar certificado
+                </NavLink>
+              </li>
             </ul>
           </nav>
           <div className="flex flex-wrap items-center gap-2">
@@ -115,6 +120,9 @@ function SessionMenu() {
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm text-white">
       <span className="font-medium">{user.name}</span>
+      <NavLink to="/mis-cursos" className={navLinkClass}>
+        Mis cursos
+      </NavLink>
       {canAccessAdmin(user.roles) && (
         <NavLink to="/admin" className={navLinkClass}>
           Panel

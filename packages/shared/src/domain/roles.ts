@@ -34,6 +34,8 @@ export const PERMISSIONS = {
   'orders:refund': ['uta_admin', 'uta_finance'],
   /** Ver inscripciones fallidas, reintentarlas y consultar listas de espera (RF-05). */
   'enrollments:manage': ['uta_admin', 'uta_editor'],
+  /** Reemitir y revocar certificados, y decidir cursos sin nota (RF-06). */
+  'certificates:manage': ['uta_admin', 'uta_editor'],
   /** Textos legales versionados (RF-11). */
   'legal:manage': ['uta_admin'],
   /** Vista de auditoría de solo lectura (RF-12). */

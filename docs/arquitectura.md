@@ -331,3 +331,31 @@ y solo quien tiene la oferta puede usarla. Si vence, pasa al siguiente.
 | Lista de espera por barrido de cupos libres                                 | Cubre todas las causas (devolución, retiro, aumento de cupos, orden vencida) sin engancharse a cada una. |
 | Cupo retenido con una reserva sin orden                                     | Reutiliza el conteo de cupos existente: nadie más puede tomarlo mientras dura la oferta.                 |
 | Reactivar la inscripción retirada al volver a comprar                       | El índice único usuario + edición impide una segunda fila.                                               |
+
+## Certificados (Fase 6, RF-06)
+
+```mermaid
+flowchart LR
+  M[Aula Virtual] -->|sync-results cada hora<br/>o Sincronizar aprobación| D{Resultado}
+  D -->|aprobado| C[(completed + certificado<br/>en una transacción)]
+  D -->|reprobado, pasado el plazo| F[failed_course]
+  D -->|por nota, sin nota,<br/>pasado el plazo| R[Decisión manual en el panel]
+  R --> C
+  R --> F
+  C --> E[Correo con el PDF]
+  C --> V[Validador del SGA]
+```
+
+Moodle informa quién aprobó, no quién reprobó: reprobar se decide por tiempo, pasados
+`COURSE_RESULT_GRACE_DAYS` desde el término de la edición.
+
+## Decisiones de la Fase 6
+
+| Decisión                                                  | Motivo                                                                                         |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| El PDF no se guarda: se regenera y se conserva su SHA-256 | Es determinista, evita almacenar archivos con datos personales y permite comprobar integridad. |
+| El PDF y la verificación no muestran nota ni RUT          | Datos personales mínimos (Ley 21.719).                                                         |
+| Correo y validador como barridos aparte, con marca        | Si fallan, se reintenta solo esa parte; el certificado ya es válido en `/verificar`.           |
+| Reemisión con código nuevo                                | El certificado anterior sigue verificable como reemplazado e indica el código vigente.         |
+| Código de 60 bits aleatorios, alfabeto de Crockford       | No es secuencial ni enumerable, y tolera errores de transcripción (O por 0, I y L por 1).      |
+| Diseño único y provisional, sin logo real                 | Falta la identidad gráfica oficial; `certificateTemplate` aún no se usa.                       |

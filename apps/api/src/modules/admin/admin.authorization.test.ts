@@ -53,6 +53,12 @@ const EXPECTED: Record<string, Permission> = {
   'GET /api/admin/enrollments': 'enrollments:manage',
   'POST /api/admin/enrollments/{id}/retry': 'enrollments:manage',
   'GET /api/admin/waitlist': 'enrollments:manage',
+  'GET /api/admin/certificates': 'certificates:manage',
+  'POST /api/admin/certificates/{id}/reissue': 'certificates:manage',
+  'POST /api/admin/certificates/{id}/revoke': 'certificates:manage',
+  'GET /api/admin/enrollments/review': 'certificates:manage',
+  'POST /api/admin/enrollments/{id}/result': 'certificates:manage',
+  'POST /api/admin/editions/{id}/sync-results': 'certificates:manage',
   'GET /api/admin/audit': 'audit:read',
 };
 

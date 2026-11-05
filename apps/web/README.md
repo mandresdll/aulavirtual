@@ -3,6 +3,14 @@
 SPA React + TypeScript (Vite) con el sitio público, el área del comprador y el panel de
 administración (`/admin`, cargado en un chunk aparte).
 
+## Requisitos que cubre (Fase 6)
+
+- **RF-06**: `/verificar` y `/verificar/:codigo` (públicas), con resultado válido, revocado,
+  reemplazado o no encontrado.
+- **`/mis-cursos`**: estado de cada curso, enlace al Aula Virtual y descarga del certificado.
+- **Panel** `/admin/certificados`: búsqueda, reemisión, revocación y cursos sin nota por decidir.
+  «Sincronizar aprobación» en las ediciones con inscripciones.
+
 ## Requisitos que cubre (Fase 5)
 
 - **RF-04 y RF-05** (`components/EditionActions.tsx`): la ficha muestra, según la persona y la
